@@ -1,10 +1,11 @@
-Kubernetes Cluster:
+CoreOS PXE Boot Environment
 ===================
 
 Dependencies:
-* Ansible 2.0
-* Vagrant 1.8.1
-* Virtualbox 3.4.43
+* Ansible >= 2.0
+* Vagrant >= 1.8.1
+* Virtualbox >= 5.0
+* Virtualbox Extension Pack [https://www.virtualbox.org/wiki/Downloads](Download here) - Needed to enable PXE Booting to work correctly
 
 You probably only need to have Ansible installed to get this environment up and running. Esp. if you are deploying to bare-metal or another hypervisor. You'll have to create a simple inventory file. Look at ansible/hosts.yaml or ansible/static_inventory to see what groups the playbooks use.
 
