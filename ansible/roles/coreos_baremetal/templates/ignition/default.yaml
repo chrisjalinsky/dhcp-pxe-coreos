@@ -1,0 +1,40 @@
+{% raw %}
+---
+ignition_version: 1
+passwd:
+  users:
+    - name: "jet"
+      groups:
+        - sudo
+        - docker
+      ssh_authorized_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/PMJ7B/EiWn51N0jIGpUcVxg+GuWCMnudK+/sySNguhtQYXHOMGXVP3I7RkyjMD+y18K27YABAgrQMtexowlZKFI/dTdPAZCob7m2pr4RyW6UySp6bPNzldHhN0iyHqt2/gnfXLX2OCwGe8yGsCsWEIb19xaYWJkL/0rmKaq82/vqqMOmBko3JOom1UPExr9TXc8kQCBXVVL1U9WQyOJnZewPlrbzj8xIdtUX5Vv5lmU2VsLl+vvC7fNnLJeCocWjdfGf1j0eTJtAYgSc2FujrjNhfU0+YTRs9hextq4SQlgHPHA4KNIfZdxT9/mOIET1I5L0+dNf0VawZJD0Gpf/
+      create:
+        home_dir: "/home/jet"
+        shell: "/bin/bash"
+systemd:
+  units:
+    - name: install.service
+      enable: true
+      contents: |
+        [Unit]
+        Requires=network-online.target
+        After=network-online.target
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/curl -o {% endraw %}{{ coreos_baremetal_tmp_file }}{% raw %} "{{.ignition_endpoint}}?{{.query}}&os=installed"
+        ExecStart=/usr/bin/coreos-install -d /dev/sda -C {{.coreos_channel}} -V {{.coreos_version}} -i {% endraw %}{{ coreos_baremetal_tmp_file }}{% raw %} {{if index . "baseurl"}}-b {{.baseurl}}{{end}}
+        ExecStart=/usr/bin/udevadm settle
+        ExecStart=/usr/bin/systemctl reboot
+        [Install]
+        WantedBy=multi-user.target
+{{ if index . "ssh_authorized_keys" }}
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        {{ range $element := .ssh_authorized_keys }}
+        - {{$element}}
+        {{end}}
+{{end}}
+{% endraw %}

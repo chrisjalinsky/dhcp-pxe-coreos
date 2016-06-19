@@ -1,0 +1,145 @@
+---
+
+- name: Install additional syslinux packages
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+    - "syslinux"
+    - "syslinux-common"
+
+- name: create pxelinux dirs
+  file:
+    dest: "{{ item.dest }}"
+    state: "{{ item.state | default('directory') }}"
+    mode: "{{ item.mode | default('777') }}"
+    owner: "{{ item.owner | default('tftp') }}"
+    group: "nogroup"
+    recurse: "yes"
+  with_items:
+    - dest: "{{ tftpd_tftpboot_dir }}/pxelinux.cfg"
+
+- name: Template /pxelinux.cfg/default 
+  template:
+    src: coreos/pxelinux.cfg/default
+    dest: "{{ tftpd_tftpboot_dir }}/pxelinux.cfg/default"
+    mode: "0777"
+    owner: tftp
+    group: nogroup
+
+- name: Copy syslinux pxelinux.0 dir
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: yes
+    mode: "0664"
+  with_items:
+    - src: "/usr/lib/syslinux/pxelinux.0"
+      dest: "{{ tftpd_tftpboot_dir }}/pxelinux.0"
+    - src: "/usr/lib/syslinux/vesamenu.c32"
+      dest: "{{ tftpd_tftpboot_dir }}/vesamenu.c32"
+
+- name: Template Apache cloud config files
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0664
+    owner: www-data
+    group: www-data
+  with_items:
+    - src: coreos/http/pxe-cloud-config.yml
+      dest: "{{ tftpd_coreos_cloud_config.server_path }}"
+    - src: coreos/http/kmaster-cloud-config.yml
+      dest: "{{ tftpd_apache_dir }}/kmaster-cloud-config.yml"
+    - src: coreos/http/knode-cloud-config.yml
+      dest: "{{ tftpd_apache_dir }}/knode-cloud-config.yml"
+    - src: coreos/http/etcd-cloud-config.yml
+      dest: "{{ tftpd_apache_dir }}/etcd-cloud-config.yml"
+    - src: coreos/run/coreos-kubernetes/controller-options.env
+      dest: "{{ tftpd_apache_dir }}/options.env"
+    - src: coreos/var/lib/coreos-vagrant/controller-user-data
+      dest: "{{ tftpd_apache_dir }}/controller-user-data"
+    - src: coreos/var/lib/coreos-vagrant/worker-user-data
+      dest: "{{ tftpd_apache_dir }}/worker-user-data"
+    - src: coreos/var/lib/coreos-vagrant/ignition.json
+      dest: "{{ tftpd_apache_dir }}/ignition.json"
+
+
+#wget -O kube-register  https://github.com/kelseyhightower/kube-register/releases/download/v0.0.2/kube-register-0.0.2-linux-amd64
+#wget -O setup-network-environment https://github.com/kelseyhightower/setup-network-environment/releases/download/v1.0.0/setup-network-environment
+#wget https://storage.googleapis.com/kubernetes-release/release/v0.15.0/bin/linux/amd64/kubernetes --no-check-certificate
+#wget https://storage.googleapis.com/kubernetes-release/release/v0.15.0/bin/linux/amd64/kube-apiserver --no-check-certificate
+#wget https://storage.googleapis.com/kubernetes-release/release/v0.15.0/bin/linux/amd64/kube-controller-manager --no-check-certificate
+#wget https://storage.googleapis.com/kubernetes-release/release/v0.15.0/bin/linux/amd64/kube-scheduler --no-check-certificate
+#wget https://storage.googleapis.com/kubernetes-release/release/v0.15.0/bin/linux/amd64/kubectl --no-check-certificate
+#wget https://storage.googleapis.com/kubernetes-release/release/v0.15.0/bin/linux/amd64/kubecfg --no-check-certificate
+#wget https://storage.googleapis.com/kubernetes-release/release/v0.15.0/bin/linux/amd64/kubelet --no-check-certificate
+#wget https://storage.googleapis.com/kubernetes-release/release/v0.15.0/bin/linux/amd64/kube-proxy --no-check-certificate
+#wget -O flanneld https://storage.googleapis.com/k8s/flanneld --no-check-certificate
+
+#- name: GET Apache kubernetes files
+#  register: apache_get_files
+#  get_url:
+#    url: "{{ item.url }}"
+#    dest: "{{ item.dest }}"
+#    owner: "www-data"
+#    group: "www-data"
+#    mode: "0777"
+#  with_items:
+#    - url: "https://github.com/kelseyhightower/kube-register/releases/download/v0.0.4/kube-register-0.0.4-linux-amd64"
+#      dest: "{{ tftpd_apache_dir }}/kube-register"
+#    - url: "https://github.com/kelseyhightower/setup-network-environment/releases/download/1.0.1/setup-network-environment"
+#      dest: "{{ tftpd_apache_dir }}/setup-network-environment"
+#    - url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubernetes"
+#      dest: "{{ tftpd_apache_dir }}/kubernetes"
+#    - url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kube-apiserver"
+#      dest: "{{ tftpd_apache_dir }}/kube-apiserver"
+#    - url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kube-controller-manager"
+#      dest: "{{ tftpd_apache_dir }}/kube-controller-manager"
+#    - url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kube-scheduler"
+#      dest: "{{ tftpd_apache_dir }}/kube-scheduler"
+#    - url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubectl"
+#      dest: "{{ tftpd_apache_dir }}/kubectl"
+#    - url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubecfg"
+#      dest: "{{ tftpd_apache_dir }}/kubecfg"
+#    - url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubelet"
+#      dest: "{{ tftpd_apache_dir }}/kubelet"
+#    - url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kube-proxy"
+#      dest: "{{ tftpd_apache_dir }}/kube-proxy"
+#
+#- name: Unarchive flanneld
+#  unarchive:
+#    url: "{{ item.url }}"
+#    dest: "{{ item.dest }}"
+#  with_items:
+#    - url: "https://github.com/coreos/flannel/releases/download/v0.5.5/flannel-0.5.5-linux-amd64.tar.gz"
+#      dest: "{{ tftpd_apache_dir }}"
+
+- name: Purge coreos pxe files when specified
+  when: tftpd_purge_coreos | bool
+  file:
+    dest: "{{ item.dest }}"
+    state: absent
+  with_items: "{{ tftpd_coreos_pxe_files }}"
+
+- name: GET coreos pxe files
+  register: tftpd_get_coreos
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+    owner: "tftp"
+    group: "nogroup"
+    mode: "0777"
+  with_items: "{{ tftpd_coreos_pxe_files }}"
+
+- name: Verify downloads when GET files task has changed
+  when: tftpd_get_coreos|changed
+  ignore_errors: yes
+  shell: "{{ item.cmd }}"
+  args:
+    executable: /bin/bash
+  with_items:
+    - cmd: "gpg --verify {{ tftpd_tftpboot_dir }}/coreos_production_pxe.vmlinuz.sig"
+    - cmd: "gpg --verify {{ tftpd_tftpboot_dir }}/coreos_production_pxe_image.cpio.gz.sig"
+    

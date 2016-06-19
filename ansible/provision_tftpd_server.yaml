@@ -1,0 +1,23 @@
+---
+
+- name: provision tftpd servers
+  hosts: core_servers
+  become: yes
+  become_user: root
+  roles:
+    - role: tftpd
+      tftpd_netboot_image: "coreos"
+      tftpd_tftpboot_dir: "/var/lib/tftpboot"
+      tftpd_purge_coreos: "no"
+      tftpd_coreos_cloud_config:
+        url: "http://core1.lan/ignition.json"
+        name: "ignition.json"
+        server_path: "/var/www/html/ignition.json"
+      tftpd_coreos_etcd_endpoints: "http://0.0.0.0:2379"
+      tftpd_coreos_controller_endpoint: "{{ hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address'] }}"
+      tftpd_coreos_channel: "alpha"
+      tftpd_coreos_initrd_opts:
+        - "coreos.config.url=http://core1.lan/ignition.json"
+        - "coreos.autologin=tty1"
+        - "console=tty0"
+        - "coreos.first_boot=1"

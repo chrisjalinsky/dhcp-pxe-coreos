@@ -1,0 +1,12 @@
+---
+
+- name: provision coreos baremetal bootcfg servers
+  hosts: core_servers
+  become: yes
+  become_user: root
+  roles:
+    - role: coreos_baremetal
+      coreos_channel: "alpha"
+      coreos_version: "1053.2.0"
+      #coreos_baremetal_bootcfg_data_dir: "/opt/coreos-baremetal/examples"
+      #coreos_baremetal_bootcfg_assets_dir: "/opt/coreos-baremetal/examples/assets"

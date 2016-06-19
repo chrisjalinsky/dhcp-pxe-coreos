@@ -1,0 +1,7 @@
+---
+
+- name: Unarchive netboot into /var/lib/tftpboot
+  unarchive:
+    src: "{{ tftpd_netboot_image }}/netboot.tar.gz"
+    dest: "/var/lib/tftpboot"
+    creates: "/var/lib/tftpboot/pxelinux.0"

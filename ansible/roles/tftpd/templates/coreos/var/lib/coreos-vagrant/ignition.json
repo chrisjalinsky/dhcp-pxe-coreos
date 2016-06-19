@@ -1,0 +1,40 @@
+{
+  "ignition": { "version": "2.0.0" },
+  "passwd": {
+    "users": [{
+      "name": "jet",
+      "passwordHash": "",
+      "sshAuthorizedKeys":[
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/PMJ7B/EiWn51N0jIGpUcVxg+GuWCMnudK+/sySNguhtQYXHOMGXVP3I7RkyjMD+y18K27YABAgrQMtexowlZKFI/dTdPAZCob7m2pr4RyW6UySp6bPNzldHhN0iyHqt2/gnfXLX2OCwGe8yGsCsWEIb19xaYWJkL/0rmKaq82/vqqMOmBko3JOom1UPExr9TXc8kQCBXVVL1U9WQyOJnZewPlrbzj8xIdtUX5Vv5lmU2VsLl+vvC7fNnLJeCocWjdfGf1j0eTJtAYgSc2FujrjNhfU0+YTRs9hextq4SQlgHPHA4KNIfZdxT9/mOIET1I5L0+dNf0VawZJD0Gpf/"
+      ],
+      "create": {
+        "homeDir": "/home/jet",
+        "shell": "/bin/bash"
+      }
+    }]
+  },
+  "storage": {
+    "filesystems": [{
+      "mount": {
+        "device": "/dev/sda",
+        "format": "ext4",
+        "create": {
+          "force": true,
+          "options": [ "-L", "ROOT" ]
+        }
+      }
+    }],
+    "files": [{
+      "filesystem": "root",
+      "path": "/foo/bar",
+      "contents": { "source": "data:,example%20file%0A" }
+    }]
+  },
+  "systemd": {
+    "units": [{
+      "name":"install.service",
+      "enable": true,
+      "contents": "[Unit]\nRequires=network-online.target\nAfter=network-online.target\n[Service]\nType=oneshot\nExecStart=/usr/bin/curl http://core1.lan/etcd-cloud-config.yml -o cloud-config.yml\nExecStart=/usr/bin/coreos-install -d /dev/sda -C {{ tftpd_coreos_channel }} -i cloud-config.yml\nExecStart=/usr/bin/udevadm settle\nExecStart=/usr/bin/systemctl reboot\n[Install]\nWantedBy=multi-user.target"
+    }]
+  }
+}

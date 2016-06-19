@@ -1,0 +1,64 @@
+---
+
+- name: Install prereq apt packages
+  apt:
+    name: "{{ item.name }}"
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+    - name: apache2
+    - name: tftpd-hpa
+    - name: inetutils-inetd
+
+- name: Template /etc/default/tftpd-hpa to include OPTIONS and RUN_DAEMON
+  template:
+    src: etc/default/tftpd-hpa
+    dest: /etc/default/tftpd-hpa
+    mode: 0644
+    owner: root
+    group: root
+
+- name: Ensure /etc/inetd.conf includes tftp dgram udp configuration
+  register: inetd_test
+  lineinfile:
+    dest: "/etc/inetd.conf"
+    line: "tftp    dgram   udp    wait    root    /usr/sbin/in.tftpd /usr/sbin/in.tftpd -s {{ tftpd_tftpboot_dir }}"
+    regexp: "^tftp.*"
+
+- name: Restart inetd-utils when /etc/inetd.conf changes
+  when: inetd_test|changed
+  ignore_errors: yes
+  service:
+    name: "inetutils-inetd"
+    state: restarted
+
+- name: create tftpboot dir
+  file:
+    dest: "{{ item.dest }}"
+    state: "{{ item.state | default('directory') }}"
+    mode: "{{ item.mode | default('777') }}"
+    owner: "{{ item.owner | default('tftp') }}"
+    group: "nogroup"
+    recurse: "yes"
+  with_items:
+    - dest: "{{ tftpd_tftpboot_dir }}"
+
+- name: Include chainloading kpxe file when specified
+  when: "{{ tftpd_chainloading | bool }}"
+  copy:
+    src: undionly.kpxe
+    dest: "{{ tftpd_tftpboot_dir }}/undionly.kpxe"  
+
+- name: Include ubuntu netboot when tftpd_netboot_image is an ubuntu release
+  when: tftpd_netboot_image == "xenial64"
+  include: netboot_ubuntu.yml
+
+- name: Include corecos netboot when tftpd_netboot_image is a coreos release
+  when: tftpd_netboot_image == "coreos"
+  include: netboot_coreos.yml
+
+- name: Restart /etc/init.d/tftpd-hpa server
+  service:
+    name: "tftpd-hpa"
+    pattern: "/etc/init.d/tftpd-hpa"
+    state: restarted

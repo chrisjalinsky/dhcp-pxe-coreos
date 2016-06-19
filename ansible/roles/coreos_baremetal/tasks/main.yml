@@ -1,0 +1,77 @@
+---
+
+- name: Ensure git present
+  apt:
+    name: git
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Ensure bootcfg and git dirs present
+  register: bootcfg_data_dir
+  file:
+    dest: "{{ item.dest }}"
+    state: directory
+    mode: "{{ item.mode | default('0777') }}"
+  with_items:
+    - dest: "{{ coreos_baremetal_git_dir }}"
+    - dest: "{{ coreos_baremetal_bootcfg_data_dir }}"
+    - dest: "{{ coreos_baremetal_bootcfg_assets_dir }}"
+    - dest: "{{ coreos_baremetal_bootcfg_cloud_dir }}"
+    - dest: "{{ coreos_baremetal_bootcfg_groups_dir }}"
+    - dest: "{{ coreos_baremetal_bootcfg_ignition_dir }}"
+    - dest: "{{ coreos_baremetal_bootcfg_profiles_dir }}"
+  ignore_errors: yes
+
+- name: Extract CoreOS Baremetal bootcfg binary
+  unarchive:
+    src: "https://github.com/coreos/coreos-baremetal/releases/download/{{ coreos_baremetal_version }}/bootcfg-{{ coreos_baremetal_version }}-linux-amd64.tar.gz"
+    dest: "/opt"
+    copy: no
+    creates: "/opt/bootcfg-{{ coreos_baremetal_version }}/bootcfg"
+
+- name: Symlink CoreOS Baremetal bootcfg binary to /usr/local/bin
+  file:
+    src: "{{ coreos_baremetal_binary_parent_dir }}/bootcfg-{{ coreos_baremetal_version }}/bootcfg"
+    dest: "{{ coreos_baremetal_symlink_bin_dir }}/bootcfg"
+    state: link
+
+- name: Download Git repo
+  git:
+    repo: "https://github.com/coreos/coreos-baremetal.git"
+    dest: "{{ coreos_baremetal_git_dir }}"
+    update: no
+
+- name: Run get-coreos script 
+  shell: "./scripts/get-coreos {{ coreos_baremetal_coreos_channel }} {{ coreos_baremetal_coreos_version }}"
+  args:
+    chdir: "{{ coreos_baremetal_git_dir }}"
+    creates: "{{ coreos_baremetal_git_assets_dir }}/coreos/{{ coreos_baremetal_coreos_version }}/coreos_production_pxe.vmlinuz"
+
+- name: Rsync {{ coreos_baremetal_git_assets_dir }}/coreos/ to {{ coreos_baremetal_bootcfg_data_dir }}/assets
+  synchronize:
+    src: "{{ coreos_baremetal_git_assets_dir }}"
+    dest: "{{ coreos_baremetal_bootcfg_data_dir }}"
+  delegate_to: "{{ inventory_hostname }}"
+
+#- name: Copy git to bootcfg dir
+#  synchronize:
+#    src: "{{ coreos_baremetal_git_data_dir }}"
+#    dest: "{{ coreos_baremetal_bootcfg_data_dir }}"
+#  delegate_to: "{{ inventory_hostname }}"
+
+- name: Template groups
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: "groups/default.json"
+      dest: "{{ coreos_baremetal_bootcfg_groups_dir }}/default.json"
+    - src: "profiles/default.json"
+      dest: "{{ coreos_baremetal_bootcfg_profiles_dir }}/default.json"
+    - src: "ignition/default.yaml"
+      dest: "{{ coreos_baremetal_bootcfg_ignition_dir }}/default.yaml"
+
+
+
+#bootcfg -address 0.0.0.0:8080 -data-path /opt/coreos-baremetal/examples -assets-path /opt/coreos-baremetal/examples/assets
+#sudo docker run -p 8080:8080 --rm -v $PWD/examples:/var/lib/bootcfg:Z -v $PWD/examples/groups/etcd-docker:/var/lib/bootcfg/groups:Z quay.io/coreos/bootcfg:latest -address=0.0.0.0:8080 -log-level=debug

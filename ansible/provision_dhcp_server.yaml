@@ -1,0 +1,43 @@
+---
+
+- name: provision dhcp servers
+  hosts: core_servers
+  become: yes
+  become_user: root
+  roles:
+    - role: isc_dhcp_server
+      isc_dhcp_server_options:
+        - name: "option domain-name"
+          value: '"{{ inventory_hostname }}"'
+        - name: "allow"
+          value: "booting"
+        - name: "allow"
+          value: "bootp"
+      isc_dhcp_server_subnets:
+        - net: "192.168.0.0"
+          netmask: "255.255.255.0"
+          pool:
+            - name: "range"
+              value: "192.168.0.50 192.168.0.253"
+          vars:
+            - name: "option interface-mtu"
+              value: "9000"
+            - name: "option broadcast-address"
+              value: "192.168.0.255"
+            - name: "option routers"
+              value: "192.168.0.1"
+            - name: "option domain-name-servers"
+              value: "192.168.0.10"
+            - name: "option domain-name"
+              value: '"lan"'
+            - name: "filename"
+              value: '"pxelinux.0"'
+            - name: "next-server"
+              value: "192.168.0.10"
+      isc_dhcp_server_hosts:
+        - name: "lb1"
+          vars:
+            - name: "hardware ethernet"
+              value: "08:00:27:2B:EB:89"
+            - name: "fixed-address"
+              value: "192.168.0.29"

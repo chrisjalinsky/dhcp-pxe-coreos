@@ -1,0 +1,46 @@
+---
+
+tftpd_netboot_image: "xenial64"
+tftpd_tftpboot_dir: "/var/lib/tftpboot"
+
+tftpd_chainloading: "yes"
+
+tftpd_coreos_channel: "stable"
+tftpd_purge_coreos: "no"
+tftpd_coreos_pxe_files:
+  - url: "https://{{ tftpd_coreos_channel }}.release.core-os.net/amd64-usr/current/coreos_production_pxe.vmlinuz"
+    dest: "{{ tftpd_tftpboot_dir }}/coreos_production_pxe.vmlinuz"
+  - url: "https://{{ tftpd_coreos_channel }}.release.core-os.net/amd64-usr/current/coreos_production_pxe.vmlinuz.sig"
+    dest: "{{ tftpd_tftpboot_dir }}/coreos_production_pxe.vmlinuz.sig"
+  - url: "https://{{ tftpd_coreos_channel }}.release.core-os.net/amd64-usr/current/coreos_production_pxe_image.cpio.gz"
+    dest: "{{ tftpd_tftpboot_dir }}/coreos_production_pxe_image.cpio.gz"
+  - url: "https://{{ tftpd_coreos_channel }}.release.core-os.net/amd64-usr/current/coreos_production_pxe_image.cpio.gz.sig"
+    dest: "{{ tftpd_tftpboot_dir }}/coreos_production_pxe_image.cpio.gz.sig"
+
+tftpd_coreos_initrd_opts:
+  - "cloud-config-url=http://core1.lan/pxe-cloud-config.yml"
+  - "coreos.autologin=tty1"
+  - "console=tty0"
+  - "coreos.first_boot=1"
+
+tftpd_coreos_cloud_config:
+  url: "http://core1.lan/pxe-cloud-config.yml"
+  name: "pxe-cloud-config.yml"
+  server_path: "/var/www/html/pxe-cloud-config.yml"
+
+tftpd_run_coreos_kubernetes_dir: "/run/coreos-kubernetes"
+
+# controller and worker nodes /run/coreos-kubernetes/options.env
+#ETCD_ENDPOINTS=http://172.17.4.51:2379,http://172.17.4.52:2379,http://172.17.4.53:2379
+tftpd_coreos_etcd_endpoints: "http://0.0.0.0:2379"
+
+# worker nodes /run/coreos-kubernetes/options.env
+tftpd_coreos_controller_endpoint: "https://{{ hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address'] }}"
+
+# etcd nodes
+# e1=http://172.17.4.51:2380,e2=http://172.17.4.52:2380,e3=http://172.17.4.53:2380
+tftpd_coreos_etcd_name: "{{ inventory_hostname }}"
+tftpd_coreos_etcd_initial_cluster: "{{ ansible_fqdn }}=http://0.0.0.0:2380"
+
+tftpd_apache_dir: "/var/www/html"
+tftpd_tmp_dir: "/tmp"

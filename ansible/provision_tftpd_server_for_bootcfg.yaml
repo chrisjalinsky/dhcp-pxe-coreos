@@ -1,0 +1,9 @@
+---
+
+- name: provision tftpd servers
+  hosts: core_servers
+  become: yes
+  become_user: root
+  roles:
+    - role: tftpd
+      tftpd_tftpboot_dir: "/var/lib/bootcfg"

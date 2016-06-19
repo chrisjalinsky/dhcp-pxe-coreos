@@ -1,0 +1,25 @@
+---
+
+coreos_baremetal_version: "v0.3.0"
+coreos_baremetal_coreos_channel: "alpha"
+coreos_baremetal_coreos_version: "1053.2.0"
+
+coreos_baremetal_tmp_file: "/tmp/ignition.json"
+
+coreos_baremetal_binary_parent_dir: "/opt"
+coreos_baremetal_symlink_bin_dir: "/usr/local/bin"
+
+coreos_baremetal_git_dir: "/opt/coreos-baremetal"
+coreos_baremetal_git_data_dir: "/opt/coreos-baremetal/examples"
+coreos_baremetal_git_assets_dir: "/opt/coreos-baremetal/examples/assets"
+coreos_baremetal_git_cloud_dir: "/opt/coreos-baremetal/examples/cloud"
+coreos_baremetal_git_groups_dir: "/opt/coreos-baremetal/examples/groups/etcd-docker"
+coreos_baremetal_git_ignition_dir: "/opt/coreos-baremetal/examples/ignition"
+coreos_baremetal_git_profiles_dir: "/opt/coreos-baremetal/examples/profiles"
+
+coreos_baremetal_bootcfg_data_dir: "/var/lib/bootcfg"
+coreos_baremetal_bootcfg_assets_dir: "/var/lib/bootcfg/assets"
+coreos_baremetal_bootcfg_cloud_dir: "/var/lib/bootcfg/cloud"
+coreos_baremetal_bootcfg_groups_dir: "/var/lib/bootcfg/groups"
+coreos_baremetal_bootcfg_ignition_dir: "/var/lib/bootcfg/ignition"
+coreos_baremetal_bootcfg_profiles_dir: "/var/lib/bootcfg/profiles"

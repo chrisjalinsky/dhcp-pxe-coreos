@@ -1,0 +1,6 @@
+# This should be converted to a vault
+authorized_registry_users:
+  - user: tester
+    password: pw
+  - user: testuser
+    password: pass
