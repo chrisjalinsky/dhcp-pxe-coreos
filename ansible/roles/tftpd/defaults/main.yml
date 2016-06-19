@@ -1,6 +1,6 @@
 ---
 
-tftpd_netboot_image: "xenial64"
+tftpd_netboot_image: ""
 tftpd_tftpboot_dir: "/var/lib/tftpboot"
 
 tftpd_chainloading: "yes"

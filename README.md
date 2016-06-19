@@ -102,3 +102,13 @@ if [ $? -eq 0 ]; then
   #ansible-playbook provision_dhcp_server_for_bootcfg.yaml -i inventory.py >>./install.out 2>&1
 fi
 ```
+
+###Start the bootcfg server:
+```
+bootcfg -address 0.0.0.0:8080
+```
+
+Change the data and assets paths like so:
+```
+bootcfg -address 0.0.0.0:8080 -data-path /opt/coreos-baremetal/examples -assets-path /opt/coreos-baremetal/examples/assets
+```
