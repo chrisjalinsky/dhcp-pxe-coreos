@@ -86,25 +86,28 @@ fi
 
 # Install tftpd pxe server
 if [ $? -eq 0 ]; then
-  ansible-playbook provision_tftpd_server.yaml -i inventory.py >>./install.out 2>&1
-  #or run:
-  #ansible-playbook provision_tftpd_server_for_bootcfg.yaml -i inventory.py >>./install.out 2>&1
+  ansible-playbook provision_tftpd_server_for_bootcfg.yaml -i inventory.py >>./install.out 2>&1
+  
+  #or run for an apache server and separate templates. You need to download the netboot.tar.gz:
+  #ansible-playbook provision_tftpd_server.yaml -i inventory.py >>./install.out 2>&1
 fi
 
-# Install bootcfg server for coreos baremetal bootcfg api pxe boot server
+# Install bootcfg server for coreos baremetal bootcfg api pxe boot server. The get-coreos.sh distro download is several hundred MBs.
 if [ $? -eq 0 ]; then
   ansible-playbook provision_bootcfg_server.yaml -i inventory.py >>./install.out 2>&1
 fi
 
 # Install dhcp server
 if [ $? -eq 0 ]; then
-  ansible-playbook provision_dhcp_server.yaml -i inventory.py >>./install.out 2>&1
+  ansible-playbook provision_dhcp_server_for_bootcfg.yaml -i inventory.py >>./install.out 2>&1
+  
   #or run:
-  #ansible-playbook provision_dhcp_server_for_bootcfg.yaml -i inventory.py >>./install.out 2>&1
+  #ansible-playbook provision_dhcp_server.yaml -i inventory.py >>./install.out 2>&1
+
 fi
 ```
 
-###Start the bootcfg server:
+###Start the bootcfg server on core1.lan:
 ```
 bootcfg -address 0.0.0.0:8080
 ```
