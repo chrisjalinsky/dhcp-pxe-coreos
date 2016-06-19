@@ -116,3 +116,28 @@ Change the data and assets paths like so:
 ```
 bootcfg -address 0.0.0.0:8080 -data-path /opt/coreos-baremetal/examples -assets-path /opt/coreos-baremetal/examples/assets
 ```
+
+###Create the new server to be PXE booted:
+
+In Virtualbox, create a new Linux host.
+It needs:
+* a private host adapter on eth0, Using the same private adapter as the dhcp, and tftp server (in my case, vboxnet52)
+* Nat adapter on eth1
+* Blank disc
+* Boot order set to Network
+
+Private Host adapter
+
+![Private Host Adapter](https://raw.githubusercontent.com/chrisjalinsky/dhcp-pxe-coreos/master/install_images/virtualbox_private_net_adapter.png)
+
+NAT adapter
+
+![Private Host Adapter](https://raw.githubusercontent.com/chrisjalinsky/dhcp-pxe-coreos/master/install_images/virtualbox_nat_adapter.png)
+
+Blank Disk
+
+![Private Host Adapter](https://raw.githubusercontent.com/chrisjalinsky/dhcp-pxe-coreos/master/install_images/sata_disk.png)
+
+Boot Order
+
+![Private Host Adapter](https://raw.githubusercontent.com/chrisjalinsky/dhcp-pxe-coreos/master/install_images/boot_order.png)
