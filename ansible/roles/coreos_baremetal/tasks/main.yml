@@ -59,19 +59,66 @@
 #    dest: "{{ coreos_baremetal_bootcfg_data_dir }}"
 #  delegate_to: "{{ inventory_hostname }}"
 
-- name: Template groups
+- name: Template Upstart bootcfg service
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0775"
+    owner: "root"
+  with_items:
+    - src: "bootcfg.conf"
+      dest: "{{ coreos_baremetal_service_dir }}/bootcfg.conf"
+
+- name: Template groups profiles ignition configs
   template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
   with_items:
     - src: "groups/default.json"
       dest: "{{ coreos_baremetal_bootcfg_groups_dir }}/default.json"
+    - src: "groups/pxe.json"
+      dest: "{{ coreos_baremetal_bootcfg_groups_dir }}/pxe.json"
+    - src: "groups/pxe2.json"
+      dest: "{{ coreos_baremetal_bootcfg_groups_dir }}/pxe2.json"
+    - src: "groups/pxe3.json"
+      dest: "{{ coreos_baremetal_bootcfg_groups_dir }}/pxe3.json"
     - src: "profiles/default.json"
       dest: "{{ coreos_baremetal_bootcfg_profiles_dir }}/default.json"
+    - src: "profiles/k8s-master-install.json"
+      dest: "{{ coreos_baremetal_bootcfg_profiles_dir }}/k8s-master-install.json"
+    - src: "profiles/k8s-worker-install.json"
+      dest: "{{ coreos_baremetal_bootcfg_profiles_dir }}/k8s-worker-install.json"
     - src: "ignition/default.yaml"
       dest: "{{ coreos_baremetal_bootcfg_ignition_dir }}/default.yaml"
+    - src: "ignition/k8s-master.yaml"
+      dest: "{{ coreos_baremetal_bootcfg_ignition_dir }}/k8s-master.yaml"
+    - src: "ignition/k8s-worker.yaml"
+      dest: "{{ coreos_baremetal_bootcfg_ignition_dir }}/k8s-worker.yaml"
 
+- name: Generate Certs and kubeconfig to {{ coreos_baremetal_bootcfg_assets_dir }}/tls/kubeconfig
+  shell: "./scripts/tls/k8s-certgen -d {{ coreos_baremetal_bootcfg_assets_dir }}/tls -s 192.168.0.151 -m IP.1=10.30.0.1,IP.2=192.168.0.151 -w IP.1=192.168.0.152,IP.2=192.168.0.153"
+  args:
+    chdir: "{{ coreos_baremetal_git_dir }}"
+    creates: "{{ coreos_baremetal_bootcfg_assets_dir }}/tls/kubeconfig"
 
+- name: Download kubectl
+  get_url:
+    url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubectl"
+    dest: "{{ coreos_baremetal_binary_parent_dir }}/kubectl"
+
+- name: Symlink kubectl to {{ coreos_baremetal_symlink_bin_dir }}
+  file:
+    src: "{{ coreos_baremetal_binary_parent_dir }}/kubectl"
+    dest: "{{ coreos_baremetal_symlink_bin_dir }}/kubectl"
+    mode: "0775"
+    state: link
+  ignore_errors: yes
+
+- name: Ensure bootcfg service started
+  service:
+    name: bootcfg
+    pattern: "{{ coreos_baremetal_service_dir }}/bootcfg.conf"
+    state: started
 
 #bootcfg -address 0.0.0.0:8080 -data-path /opt/coreos-baremetal/examples -assets-path /opt/coreos-baremetal/examples/assets
 #sudo docker run -p 8080:8080 --rm -v $PWD/examples:/var/lib/bootcfg:Z -v $PWD/examples/groups/etcd-docker:/var/lib/bootcfg/groups:Z quay.io/coreos/bootcfg:latest -address=0.0.0.0:8080 -log-level=debug

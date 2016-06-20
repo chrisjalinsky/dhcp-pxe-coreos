@@ -141,3 +141,13 @@ Blank Disk
 Boot Order
 
 ![Private Host Adapter](https://raw.githubusercontent.com/chrisjalinsky/dhcp-pxe-coreos/master/install_images/boot_order.png)
+
+
+###Core1.lan:
+
+```
+kubectl --kubeconfig=/var/lib/bootcfg/assets/tls/kubeconfig get nodes
+kubectl --kubeconfig=/var/lib/bootcfg/assets/tls/kubeconfig cluster-info
+kubectl --kubeconfig=/var/lib/bootcfg/assets/tls/kubeconfig create -f https://rawgit.com/kubernetes/dashboard/master/src/deploy/kubernetes-dashboard.yaml
+kubectl --kubeconfig=/var/lib/bootcfg/assets/tls/kubeconfig cluster-info
+```

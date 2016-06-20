@@ -1,0 +1,26 @@
+{
+  "id": "pxe2",
+  "name": "Worker Node",
+  "profile": "k8s-worker-install",
+  "selector": {
+    "os": "installed",
+    "mac": "08:00:27:23:37:EF"
+  },
+  "metadata": {
+    "etcd_initial_cluster": "pxe=http://192.168.0.151:2380,pxe2=http://192.168.0.152:2380,pxe3=http://192.168.0.153:2380",
+    "etcd_name": "pxe2",
+    "fleet_metadata": "role=etcd,name=pxe2",
+    "ipv4_address": "192.168.0.152",
+    "k8s_cert_endpoint": "http://192.168.0.10:8080/assets",
+    "k8s_controller_endpoint": "https://192.168.0.151",
+    "k8s_dns_service_ip": "10.3.0.10",
+    "k8s_etcd_endpoints": "http://192.168.0.151:2379,http://192.168.0.152:2379,http://192.168.0.153:2379",
+    "skip_networkd": "true",
+    "networkd_address": "192.168.0.151",
+    "networkd_dns": "192.168.0.10",
+    "networkd_gateway": "192.168.0.1",
+    "ssh_authorized_keys": [
+      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/PMJ7B/EiWn51N0jIGpUcVxg+GuWCMnudK+/sySNguhtQYXHOMGXVP3I7RkyjMD+y18K27YABAgrQMtexowlZKFI/dTdPAZCob7m2pr4RyW6UySp6bPNzldHhN0iyHqt2/gnfXLX2OCwGe8yGsCsWEIb19xaYWJkL/0rmKaq82/vqqMOmBko3JOom1UPExr9TXc8kQCBXVVL1U9WQyOJnZewPlrbzj8xIdtUX5Vv5lmU2VsLl+vvC7fNnLJeCocWjdfGf1j0eTJtAYgSc2FujrjNhfU0+YTRs9hextq4SQlgHPHA4KNIfZdxT9/mOIET1I5L0+dNf0VawZJD0Gpf/"
+    ]
+  }
+}

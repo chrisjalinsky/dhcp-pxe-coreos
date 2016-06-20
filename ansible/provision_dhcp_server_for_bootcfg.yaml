@@ -38,9 +38,21 @@
             - name: "next-server"
               value: "192.168.0.10"
       isc_dhcp_server_hosts:
-        - name: "lb1"
+        - name: "pxe"
           vars:
             - name: "hardware ethernet"
               value: "08:00:27:2B:EB:89"
             - name: "fixed-address"
-              value: "192.168.0.29"
+              value: "192.168.0.151"
+        - name: "pxe2"
+          vars:
+            - name: "hardware ethernet"
+              value: "08:00:27:23:37:EF"
+            - name: "fixed-address"
+              value: "192.168.0.152"
+        - name: "pxe3"
+          vars:
+            - name: "hardware ethernet"
+              value: "08:00:27:DB:CE:DC"
+            - name: "fixed-address"
+              value: "192.168.0.153"
