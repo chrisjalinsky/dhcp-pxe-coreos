@@ -72,42 +72,31 @@ _meta:
 
 Using these playbooks. Currently focusing on the PXE aspect and the bootcfg ignition tool at the moment.
 
-cat ansible/run_playbooks.sh
+overview of ansible/run_playbooks.sh:
 ```
-#!/bin/bash
-
 # Installs DNS in the environment, and is not necessary if DNS already exists
-ansible-playbook provision_core_servers.yaml -i inventory.py >>./install.out 2>&1
+ansible-playbook provision_core_servers.yaml -i inventory.py
 
 # Updates the cluster node's resolv.conf to point to the previous playbook's DNS server(s), this is not necessary if DNS resolution already exists
-if [ $? -eq 0 ]; then
-  ansible-playbook update_resolv.yaml -i inventory.py >>./install.out 2>&1
-fi
+ansible-playbook update_resolv.yaml -i inventory.py
 
 # Install tftpd pxe server
-if [ $? -eq 0 ]; then
-  ansible-playbook provision_tftpd_server_for_bootcfg.yaml -i inventory.py >>./install.out 2>&1
-  
-  #or run for an apache server and separate templates. You need to download the netboot.tar.gz:
-  #ansible-playbook provision_tftpd_server.yaml -i inventory.py >>./install.out 2>&1
-fi
+ansible-playbook provision_tftpd_server_for_bootcfg.yaml -i inventory.py
 
-# Install bootcfg server for coreos baremetal bootcfg api pxe boot server. The get-coreos.sh distro download is several hundred MBs.
-if [ $? -eq 0 ]; then
-  ansible-playbook provision_bootcfg_server.yaml -i inventory.py >>./install.out 2>&1
-fi
+# Install bootcfg server for coreos baremetal bootcfg api boot server.
+ansible-playbook provision_bootcfg_server.yaml -i inventory.py 
 
 # Install dhcp server
-if [ $? -eq 0 ]; then
-  ansible-playbook provision_dhcp_server_for_bootcfg.yaml -i inventory.py >>./install.out 2>&1
-  
-  #or run:
-  #ansible-playbook provision_dhcp_server.yaml -i inventory.py >>./install.out 2>&1
+ansible-playbook provision_dhcp_server_for_bootcfg.yaml -i inventory.py
 
-fi
 ```
 
-###Start the bootcfg server on core1.lan:
+###Bootcfg Upstart service
+```
+/etc/init/bootcfg.conf
+bootcfg status
+```
+Manually Start the bootcfg server on core1.lan:
 ```
 bootcfg -address 0.0.0.0:8080
 ```
@@ -117,14 +106,17 @@ Change the data and assets paths like so:
 bootcfg -address 0.0.0.0:8080 -data-path /opt/coreos-baremetal/examples -assets-path /opt/coreos-baremetal/examples/assets
 ```
 
-###Create the new server to be PXE booted:
+###Create the new servers to be PXE booted:
 
-In Virtualbox, create a new Linux host.
-It needs:
+In Virtualbox, create 3 new Linux hosts.
+Each needs:
 * a private host adapter on eth0, Using the same private adapter as the dhcp, and tftp server (in my case, vboxnet52)
 * Nat adapter on eth1
-* Blank disc
-* Boot order set to Network
+* Blank hard drive
+* Boot order set to Network. Ideally a one time PXE boot would be ideal, then to hard drive
+
+Update the isc-dhcp-server templates and coreos_baremetal templates/groups host specific config's selector to include the mac address:
+
 
 Private Host adapter
 
@@ -144,6 +136,8 @@ Boot Order
 
 
 ###Core1.lan:
+
+A play run in the CoreOS Baremetal role, execs scripts/gen-k8s-certs.sh which puts ca.pem, apiserver.pem, keys into the TFTPD assets/tls/ folder available during ignition scripts, cloud configs, etc.
 
 ```
 kubectl --kubeconfig=/var/lib/bootcfg/assets/tls/kubeconfig get nodes
