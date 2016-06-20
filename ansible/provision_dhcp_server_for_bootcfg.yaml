@@ -13,8 +13,8 @@
           value: "booting"
         - name: "allow"
           value: "bootp"
-        - name: "get-lease-hostnames"
-          value: "true"
+        #- name: "get-lease-hostnames"
+        #  value: "true"
       isc_dhcp_server_subnets:
         - net: "192.168.0.0"
           netmask: "255.255.255.0"
@@ -44,15 +44,21 @@
               value: "08:00:27:2B:EB:89"
             - name: "fixed-address"
               value: "192.168.0.151"
+            - name: "option host-name"
+              value: '"pxe"'
         - name: "pxe2"
           vars:
             - name: "hardware ethernet"
               value: "08:00:27:23:37:EF"
             - name: "fixed-address"
               value: "192.168.0.152"
+            - name: "option host-name"
+              value: '"pxe2"'
         - name: "pxe3"
           vars:
             - name: "hardware ethernet"
               value: "08:00:27:DB:CE:DC"
             - name: "fixed-address"
               value: "192.168.0.153"
+            - name: "option host-name"
+              value: '"pxe3"'

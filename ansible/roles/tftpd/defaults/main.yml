@@ -2,6 +2,7 @@
 
 tftpd_netboot_image: ""
 tftpd_tftpboot_dir: "/var/lib/tftpboot"
+tftpd_install_apache2: no
 
 tftpd_chainloading: "yes"
 

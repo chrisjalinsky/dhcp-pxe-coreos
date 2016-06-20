@@ -1,0 +1,82 @@
+---
+
+- name: Ensure git installed
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+    - "git"
+
+- name: Create contrib dir
+  file:
+    dest: "{{ kubectl_contrib_git_dir }}"
+    state: directory
+
+- name: Clone Kubernetes Contrib Git repo
+  git:
+    repo: "https://github.com/kubernetes/contrib.git"
+    dest: "{{ kubectl_contrib_git_dir }}"
+    update: no
+
+- name: kubectl create default backend
+  shell: "kubectl {{ kubectl_opts|join(' ') }} create -f examples/default-backend.yaml"
+  args:
+    executable: /bin/bash
+    chdir: "{{ kubectl_contrib_git_dir }}/ingress/controllers/nginx"
+
+- name: Sleep for a sec
+  pause:
+    seconds: 1
+
+- name: kubectl expose rc
+  shell: "kubectl {{ kubectl_opts|join(' ') }} expose rc default-http-backend --port=80 --target-port=8080 --name=default-http-backend"
+  args:
+    executable: /bin/bash
+
+- name: Sleep for a sec
+  pause:
+    seconds: 1
+
+- name: Create default ingress controller with kubectl
+  shell: "kubectl {{ kubectl_opts|join(' ') }} create -f examples/default/rc-default.yaml"
+  args:
+    executable: /bin/bash
+    chdir: "{{ kubectl_contrib_git_dir }}/ingress/controllers/nginx"
+
+- name: Sleep for a sec
+  pause:
+    seconds: 1
+
+- name: kubectl run echoheaders docker image echoserver on port 8080 with 1 replica
+  shell: "kubectl {{ kubectl_opts|join(' ') }} run echoheaders --image=gcr.io/google_containers/echoserver:1.4 --replicas=1 --port=8080"
+  args:
+    executable: /bin/bash
+
+- name: Sleep for a sec
+  pause:
+    seconds: 1
+
+- name: kubectl expose deployment echoheaders port 80 target port 8080 name echoheadersx
+  shell: "kubectl {{ kubectl_opts|join(' ') }} expose deployment echoheaders --port=80 --target-port=8080 --name=echoheaders-x"
+  args:
+    executable: /bin/bash
+
+- name: Sleep for a sec
+  pause:
+    seconds: 1
+
+- name: kubectl expose deployment echoheaders port 80 target port 8080 name echoheadersy
+  shell: "kubectl {{ kubectl_opts|join(' ') }} expose deployment echoheaders --port=80 --target-port=8080 --name=echoheaders-y"
+  args:
+    executable: /bin/bash
+
+- name: Sleep for a sec
+  pause:
+    seconds: 1
+
+- name: kubectl create -f examples/ingress.yaml
+  shell: "kubectl {{ kubectl_opts|join(' ') }} create -f examples/ingress.yaml"
+  args:
+    executable: /bin/bash
+    chdir: "{{ kubectl_contrib_git_dir }}/ingress/controllers/nginx"

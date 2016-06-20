@@ -1,0 +1,5 @@
+---
+
+kubectl_contrib_git_dir: "/opt/contrib"
+kubectl_create_ingress_ctrl: no
+kubectl_opts: []

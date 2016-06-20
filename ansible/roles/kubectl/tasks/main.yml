@@ -1,0 +1,5 @@
+---
+
+- name: Include ingress ctrl tasks when specified
+  include: provision_ingress_ctrl.yml
+  when: kubectl_create_ingress_ctrl | bool

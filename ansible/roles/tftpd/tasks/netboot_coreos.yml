@@ -1,5 +1,12 @@
 ---
 
+- name: Install Webserver when specified
+  when: tftpd_install_apache2 | bool
+  apt:
+    name: apache2
+    update_cache: yes
+    cache_valid_time: 3600
+
 - name: Install additional syslinux packages
   apt:
     name: "{{ item }}"

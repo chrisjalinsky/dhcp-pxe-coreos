@@ -5,40 +5,9 @@ core_servers:
   vars:
     ansible_ssh_user: vagrant
     ansible_ssh_private_key_file: "~/.vagrant.d/insecure_private_key"
-kubernetes_master_servers:
-  hosts: [ kmaster1.lan ]
-  vars:
-    ansible_ssh_user: vagrant
-    ansible_ssh_private_key_file: "~/.vagrant.d/insecure_private_key"
-kubernetes_minion_servers:
-  hosts: [ ]
-  vars:
-    ansible_ssh_user: vagrant
-    ansible_ssh_private_key_file: "~/.vagrant.d/insecure_private_key"
-docker_registry_servers:
-  hosts: [ ]
-  vars:
-    ansible_ssh_user: vagrant
-    ansible_ssh_private_key_file: "~/.vagrant.d/insecure_private_key"
-kubernetes_servers:
-  children: [ kubernetes_master_servers, kubernetes_minion_servers ]
-docker_servers:
-  children: [ kubernetes_master_servers, kubernetes_minion_servers, docker_registry_servers ]
-bootcfg_servers:
-  children: [ kubernetes_master_servers ]
 all:
-  children: [ core_servers, kubernetes_master_servers, kubernetes_minion_servers, docker_registry_servers, bootcfg_servers ]
+  children: [ core_servers ]
 _meta:
   hostvars:
     core1.lan:
       vagrant_ip: "192.168.0.10"
-      vagrant_mem: "512"
-    kmaster1.lan:
-      vagrant_ip: "192.168.0.11"
-      vagrant_mem: "4096"
-    knode1.lan:
-      vagrant_ip: "192.168.0.20"
-    knode2.lan:
-      vagrant_ip: "192.168.0.21"
-    dreg1.lan:
-      vagrant_ip: "192.168.0.30"
