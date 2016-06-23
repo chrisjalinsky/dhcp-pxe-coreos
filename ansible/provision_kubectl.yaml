@@ -1,0 +1,14 @@
+---
+
+- name: provision kubectl and templates
+  hosts: core_servers
+  become: yes
+  become_user: root
+  roles:
+    - role: kubectl
+      kubectl_kubeconfig_path: "/var/lib/bootcfg/assets/tls/kubeconfig"
+      kubectl_tasklist:
+        - name: "provision_k8s_rcs.yml"
+        - name: "provision_k8s_services.yml"
+        - name: "provision_k8s_secrets.yml"
+        - name: "provision_k8s_ingresses.yml"

@@ -1,9 +1,15 @@
 CoreOS PXE Boot Environment
 ===================
 
-The following environment PXE boots a kubernetes cluster onto bare metal servers. This is currently implemented with Virtualbox VMs, but should cover all use cases.
+The following environment PXE boots a kubernetes cluster onto bare metal servers. This is currently implemented with Virtualbox VMs, but should cover different server types. The use case is local Kubernetes cluster. Included is a custom Docker build web application that is exposed and load balanced on the local network. It will be pulling it's image from a private Docker Registry which will be built as well.
 
-Dependencies:
+###Overview:
+* Manually add 3 bare metal servers (or Virtualbox) to local network (192.168.0.0/24)
+* PXE boot install CoreOS to disk (/dev/sda)
+* Reboot and run Ignition to build Etcd, Flannel, Kubernetes, Docker to disk
+* Provision a DHCP, DNS, TFTP, Docker Private Registry, and CoreOS bootcfg server
+
+###Dependencies:
 * Ansible >= 2.0
 * Vagrant >= 1.8.1
 * Virtualbox >= 5.0
@@ -22,7 +28,7 @@ vagrant up
 ###The vagrant environment:
 Here is a yaml representation of the dynamic inventory. The idea is to use a JSON API to retrieve dynamic inventory, it's currently static:
 
-NOTE: ansible user's ssh private key file is using $HOME. Adjust accordingly.
+NOTE: ansible user's ssh private key file is using $HOME. Adjust accordingly. The PXE servers havent been added here.
 
 cat ansible/hosts.yaml
 ```
@@ -42,7 +48,7 @@ _meta:
 
 ```
 
-Using these playbooks. Currently focusing on the PXE aspect and the bootcfg ignition tool at the moment.
+###Run the Ansible Playbooks:
 ```
 ansible/run_playbooks.sh
 ```
@@ -72,6 +78,7 @@ Install dhcp server. The dhcpd.conf file static IP mappings for the pxe booted s
 ```
 ansible-playbook provision_dhcp_server_for_bootcfg.yaml -i inventory.py
 ```
+
 
 ###Bootcfg Upstart service
 ```
@@ -121,9 +128,235 @@ Boot Order
 
 A play run in the CoreOS Baremetal role, execs scripts/gen-k8s-certs.sh which puts ca.pem, apiserver.pem, keys into the TFTPD assets/tls/ folder available during ignition scripts, cloud configs, etc.
 
+
+###Kubernetes dashboard
+see roles/coreos_baremetal/templates/k8s-master.yaml for svc and rc implementation.
+
 ```
-kubectl --kubeconfig=/var/lib/bootcfg/assets/tls/kubeconfig get nodes
-kubectl --kubeconfig=/var/lib/bootcfg/assets/tls/kubeconfig cluster-info
-kubectl --kubeconfig=/var/lib/bootcfg/assets/tls/kubeconfig create -f https://rawgit.com/kubernetes/dashboard/master/src/deploy/kubernetes-dashboard.yaml
-kubectl --kubeconfig=/var/lib/bootcfg/assets/tls/kubeconfig cluster-info
+kubectl create -f https://rawgit.com/kubernetes/dashboard/master/src/deploy/kubernetes-dashboard.yaml
+```
+
+###To access the Dashboard, you have to find the node port on the master:
+```
+kubectl --namespace="kube-system" describe svc/kubernetes-dashboard
+```
+###FIX Resolv
+Due to DHCP providing DNS resolution, the NAT addressing messes with the resolution of the outside Docker Registry.
+```
+DNS Resolution:
+vi /etc/systemd/resolved.conf
+
+[Resolve]
+DNS=192.168.0.10
+#FallbackDNS=
+Domains=lan
+#LLMNR=yes
+#DNSSEC=no
+
+systemctl restart systemd-resolved.service
+```
+
+###Using Private Registry, you need to create a kubernetes secret to use to pull images:
+
+Copy the Registry certs to the k8s cluster to handle the Docker insecure registry error:
+```
+mkdir -p /etc/docker/certs.d/core1.lan
+sudo scp vagrant@core1.lan:/etc/ssl/core1.lan/core1.lan.pem /etc/docker/certs.d/core1.lan/ca.pem
+sudo cp /etc/docker/certs.d/core1.lan/ca.pem /etc/ssl/certs/core1.lan.pem
+update-ca-certificates
+systemctl restart docker.service
+systemctl status docker.service
+docker login https://core1.lan
+systemctl status docker.service
+systemctl status docker.service | less
+systemctl status docker.service
+docker pull core1.lan/appweb:v1
+```
+
+This secret is a base64 encoded version of the ~/.docker/config.json file:
+```
+cat ~/.docker/config.json | base64
+```
+And create a Secret with the output:
+```
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dreg-secret
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSJodHRwczovL2NvcmUxLmxhbiI6IHsKCQkJImF1dGgiOiAiZEdWemRIVnpaWEk2Y0dGemN3PT0iCgkJfQoJfQp9
+type: kubernetes.io/dockerconfigjson
+```
+
+Kubernetes Ingress Example:
+```
+https://github.com/nginxinc/kubernetes-ingress.git
+
+After running kubectl create commands:
+
+curl --resolve cafe.example.com:443:192.168.0.152 https://cafe.example.com/coffee --insecure
+curl --resolve cafe.example.com:443:192.168.0.152 https://cafe.example.com/tea --insecure
+```
+
+Now create the App, Service, Ingress and Controllers:
+NOTE: This is using a private Docker Registry, so the first creation is for the image pull secret
+```
+kubectl create -f k8s_secrets/docker_registry_secret.yaml 
+kubectl create -f k8s_rcs/appweb_rc.yaml 
+kubectl create -f k8s_services/appweb_svc.yaml 
+kubectl create -f k8s_secrets/appweb_secret.yaml
+kubectl create -f k8s_ingresses/appweb_ingress.yaml
+kubectl create -f k8s_rcs/appweb_ingress_rc.yaml 
+```
+
+Creating a Deployment and Service for Application:
+Shorthand command that creates the service as well (--expose):
+```
+kubectl run appweb-deployment --image=core1.lan/appweb:v1 --requests=cpu=200m --expose --port=80
+```
+Long hand:
+```
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    run: appweb-deployment
+  name: appweb-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: appweb-deployment
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        run: appweb-deployment
+    spec:
+      containers:
+      - image: core1.lan/appweb:v1
+        imagePullPolicy: IfNotPresent
+        name: appweb-deployment
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 200m
+      imagePullSecrets:
+      - name: dreg-secret
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+```
+Service to Expose on the Nodes:
+```
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: appweb-service
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    run: appweb-deployment
+  type: LoadBalancer
+```
+
+Now Horizontally Autoscale the deployment:
+```
+kubectl autoscale deployment appweb-deployment --cpu-percent=50 --min=3 --max=10
+```
+Longhand:
+
+```
+---
+
+apiVersion: extensions/v1beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: appweb-deployment
+spec:
+  cpuUtilization:
+    targetPercentage: 50
+  maxReplicas: 10
+  minReplicas: 3
+  scaleRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: appweb-deployment
+    subresource: scale
+```
+
+To view Horizontal Pod Autoscale resource usage:
+```
+root@core1:/opt# kubectl get hpa
+NAME                REFERENCE                            TARGET    CURRENT   MINPODS   MAXPODS   AGE
+appweb-deployment   Deployment/appweb-deployment/scale   50%       0%        3         10        6m
+```
+
+Now, to reach this service from the outside, without looking up the NodePort, as well as load balance the exposed service:
+
+Create an ingress for the service:
+```
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: appweb-ingress
+  namespace: default
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          serviceName: appweb-service
+          servicePort: 80
+        path: /ingress
+```
+
+Finally, we need a load balancer to dynamically poll and route between the available services endpoints:
+```
+---
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: appweb-ingress-rc
+  labels:
+    app: appweb-ingress
+spec:
+  replicas: 1
+  selector:
+    app: appweb-ingress
+  template:
+    metadata:
+      labels:
+        app: appweb-ingress
+    spec:
+      containers:
+      - image: nginxdemos/nginx-ingress:0.3
+        imagePullPolicy: Always
+        name: appweb-ingress
+        ports:
+        - containerPort: 80
+          hostPort: 80
+```
+
+Kubernetes quick command to create and expose on NodePort:
+```
+kubectl run my-nginx --image=core1.lan/appweb:v1 --replicas=2 --port=80 --expose --service-overrides='{ "spec": { "type": "NodePort" } }'
 ```

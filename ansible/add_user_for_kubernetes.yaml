@@ -1,0 +1,18 @@
+---
+
+- name: Ensure SSH passwordless sudo user available for kubernetes and docker systems
+  hosts: pxe_k8s_cluster
+  become: yes
+  become_user: root
+  pre_tasks:
+    - name: Ensure docker group exists
+      group: name="docker"
+  roles:
+    - role: user_role
+      user_role_user: "root"
+      user_role_group: "root"
+      user_role_user_pw: "12345"
+      user_role_user_pw_salt: "mysalt"
+      user_role_group_system: yes
+      user_role_user_groups: "docker"
+      user_role_home: "/root"

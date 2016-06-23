@@ -1,0 +1,21 @@
+{% raw %}
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: appweb-ingress
+spec:
+  tls:
+  - hosts:
+    - appweb.com
+    secretName: appweb-secret
+  rules:
+  - host: appweb.com
+    http:
+      paths:
+      - path: /delivery
+        backend:
+          serviceName: appweb-svc
+          servicePort: 80
+{% endraw %}

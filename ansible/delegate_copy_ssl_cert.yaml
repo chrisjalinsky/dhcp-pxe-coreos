@@ -1,0 +1,63 @@
+---
+
+- name: Set facts
+  hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    - name: Set fact
+      set_fact:
+        fact_registry_leader: "{{ groups['docker_registry_servers'][0] }}"
+
+- name: Copy Docker Registry cert to docker servers
+  hosts: docker_registry_servers
+  become: yes
+  become_user: root
+  roles:
+    - role: delegate_copy
+      delegate_copy_from_host: "{{ inventory_hostname }}"
+      delegate_copy_become_user: "root"
+      delegate_copy_from_host_path: "/etc/ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+      delegate_copy_to_host: "{{ groups['pxe_k8s_cluster'] | list }}"
+      delegate_copy_to_host_path: "/etc/docker/certs.d/{{ inventory_hostname }}/ca.pem"
+      delegate_copy_to_temp_path: "/tmp/{{ inventory_hostname }}-ca.pem"
+      delegate_copy_to_ssh_user: "root"
+      delegate_copy_to_ssh_key_path: "/root/.ssh/id_rsa"
+      delegate_copy_create:
+        - dest: "/etc/docker/certs.d/{{ inventory_hostname }}"
+        - dest: "/etc/ssl/certs/{{ inventory_hostname }}"
+
+- name: Ensure main docker registry cert added to docker servers
+  hosts: pxe_k8s_cluster
+  become: yes
+  become_user: root
+  tasks:
+    - name: Create certs dirs
+      file:
+        dest: "{{ item.dest }}"
+        state: "{{ item.state | default('directory') }}"
+        recurse: "{{ item.recurse | default('yes') }}"
+      with_items:
+        - dest: "/etc/docker/certs.d/{{ fact_registry_leader }}"
+
+    - name: Copy certs
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        remote_src: yes
+      with_items:
+        - src: "/tmp/{{ fact_registry_leader }}-ca.pem"
+          dest: "/etc/docker/certs.d/{{ fact_registry_leader }}/ca.pem"
+        - src: "/tmp/{{ fact_registry_leader }}-ca.pem"
+          dest: "/etc/ssl/certs/{{ fact_registry_leader }}.pem"
+
+    - name: Update ca certs
+      shell: "update-ca-certificates"
+
+    - name: Restart docker
+      service:
+        name: docker
+        state: restarted
+
+
+      

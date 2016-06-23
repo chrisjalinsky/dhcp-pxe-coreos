@@ -1,5 +1,29 @@
 ---
 
-- name: Include ingress ctrl tasks when specified
-  include: provision_ingress_ctrl.yml
-  when: kubectl_create_ingress_ctrl | bool
+- name: Download kubectl
+  get_url:
+    url: "https://storage.googleapis.com/kubernetes-release/release/{{ kubectl_version }}/bin/linux/amd64/kubectl"
+    dest: "{{ kubectl_tmp_dir }}/kubectl"
+
+- name: Copy {{ kubectl_tmp_dir }}/kubectl to {{ kubectl_bin_dir }}
+  copy:
+    src: "{{ kubectl_tmp_dir }}/kubectl"
+    dest: "{{ kubectl_bin_dir }}/kubectl"
+    mode: "0755"
+    owner: "root"
+    group: "root"
+    remote_src: yes
+
+- name: Write env var "$KUBECONFIG"
+  lineinfile:
+    dest: "/etc/environment"
+    regexp: "^export KUBECONFIG=.*"
+    line: "export KUBECONFIG={{ kubectl_kubeconfig_path }}"
+
+- name: Include playbooks when listed in kubectl_tasklist
+  include: "{{ item.name }}"
+  with_items: "{{ kubectl_tasklist | list }}"
+  
+#- name: Include ingress ctrl tasks when specified
+#  include: provision_ingress_ctrl.yml
+#  when: kubectl_create_ingress_ctrl | bool

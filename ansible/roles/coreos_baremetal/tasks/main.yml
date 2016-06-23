@@ -101,19 +101,6 @@
     chdir: "{{ coreos_baremetal_git_dir }}"
     creates: "{{ coreos_baremetal_bootcfg_assets_dir }}/tls/kubeconfig"
 
-- name: Download kubectl
-  get_url:
-    url: "https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubectl"
-    dest: "{{ coreos_baremetal_binary_parent_dir }}/kubectl"
-
-- name: Symlink kubectl to {{ coreos_baremetal_symlink_bin_dir }}
-  file:
-    src: "{{ coreos_baremetal_binary_parent_dir }}/kubectl"
-    dest: "{{ coreos_baremetal_symlink_bin_dir }}/kubectl"
-    mode: "0775"
-    state: link
-  ignore_errors: yes
-
 - name: Ensure bootcfg service started
   service:
     name: bootcfg

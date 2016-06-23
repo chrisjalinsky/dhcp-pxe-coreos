@@ -1,0 +1,38 @@
+---
+
+#- name: Create files
+#  file:
+#    dest: "{{ item.dest }}"
+#    state: "{{ item.state | default('directory') }}"
+#    recurse: "{{ item.recurse | default(omit) }}"
+#  with_items: "{{ delegate_copy_create }}"
+#  delegate_to: "{{ delegate_copy_to_host }}"
+
+- name: Transfer {{ delegate_copy_from_host_path }}
+  become_user: "{{ delegate_copy_become_user }}"
+  become: yes
+  shell: "rsync -avr {{ delegate_copy_from_host_path }} {{ delegate_copy_to_ssh_user }}@{{ item }}:{{ delegate_copy_to_temp_path }} -e 'ssh -i {{ delegate_copy_to_ssh_key_path }} -o StrictHostKeyChecking=no'"
+  args:
+    executable: /bin/bash
+  with_items: "{{ delegate_copy_to_host }}"
+
+#- name: Transfer file from {{ delegate_copy_from_host }} to {{ inventory_hostname }}
+#  synchronize:
+#    src: "{{ delegate_copy_from_host_path }}"
+#    dest: "{{ delegate_copy_to_host_path }}"
+#    rsync_path: "sudo -u vagrant rsync"
+#    rsync_opts: '-e "ssh -o StrictHostKeyChecking=no"'
+#    use_ssh_args: yes
+#    verify_host: no
+#    perms: yes
+#  delegate_to: "{{ delegate_copy_from_host }}"
+#
+## NOTE: This works now that I've added the agr_user private key to the remote storage daemon, as in /home/agr_user/.ssh/id_rsa
+## shell command: sudo rsync -av /tmp/var/lib/bacula/bacula.sql cjalinsky@<new_bacula_dir_ip>:/tmp/bacula2.sql -e "ssh -i /home/<agr_usr>/.ssh/id_rsa"
+#- name: Run the rsync command from remote storage to bacula director
+#  synchronize:
+#    mode: "push"
+#    src: "{{ delegate_copy_from_host_path }}"
+#    dest: "{{ delegate_copy_to_host_path }}"
+#    rsync_opts: '-e "-o StrictHostKeyChecking=no"'
+#  delegate_to: "{{ delegate_copy_from_host }}"

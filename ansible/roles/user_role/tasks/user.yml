@@ -1,0 +1,45 @@
+---
+
+- name: Create user_role group
+  when: user_role_group != 'root'
+  group: name="{{ user_role_group }}" system="{{ user_role_group_system | default(omit) }}"
+
+- name: Create user_role user and add {{ user_role_user_groups }} groups
+  when: user_role_user != 'root'
+  user:
+    name: "{{ user_role_user }}"
+    group: "{{ user_role_group }}"
+    groups: "{{ user_role_user_groups }}"
+    append: yes
+    createhome: "{{ user_role_createhome | default(omit) }}"
+    password: "{{ user_role_user_pw | password_hash('sha512', user_role_user_pw_salt ) }}"
+    uid: "{{ user_role_user_gid | default(omit) }}"
+    system: "{{ user_role_system | default(omit) }}"
+
+- name: Ensure ssh dir present
+  file: dest="{{ user_role_home }}/.ssh" state=directory mode="0755" owner="{{ user_role_user }}" group="{{ user_role_group }}"
+
+- name: Ensure ssh key present
+  template: src="id_rsa" dest="{{ user_role_home }}/.ssh/id_rsa" owner="{{ user_role_user }}" group="{{ user_role_group }}" mode="0600"
+
+- name: Ensure ssh public key present
+  template: src="id_rsa.pub" dest="{{ user_role_home }}/.ssh/id_rsa.pub" owner="{{ user_role_user }}" group="{{ user_role_group }}" mode="0644"
+
+- name: Ensure ssh authorized key present
+  template: src="id_rsa.pub" dest="{{ user_role_home }}/.ssh/authorized_keys" owner="{{ user_role_user }}" group="{{ user_role_group }}" mode="0600"
+
+- name: Add user_role user to sudoers
+  lineinfile:
+    line: "{{ user_role_user }} ALL = (ALL) NOPASSWD:ALL"
+    dest: "/etc/sudoers.d/{{ user_role_user }}"
+    regexp: "^{{ user_role_user }} ALL = (ALL) NOPASSWD:ALL"
+    create: yes
+
+- name: Create config to disable strict host key check
+  copy:
+    content: "Host * StrictHostKeyChecking no"
+    dest: "{{ user_role_home }}/.ssh/config"
+    mode: "0400"
+    owner: "{{ user_role_user }}"
+    group: "{{ user_role_group }}"
+    

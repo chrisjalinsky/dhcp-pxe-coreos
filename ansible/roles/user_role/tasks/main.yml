@@ -1,0 +1,4 @@
+---
+
+- name: Include {{ user_role_user }} tasks
+  include: user.yml    

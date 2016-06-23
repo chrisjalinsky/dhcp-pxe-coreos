@@ -1,0 +1,77 @@
+---
+
+- name: Ensure apt packages are present
+  when: docker_engine_repo == "ubuntu-xenial"
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: "3600"
+  with_items:
+    - "apt-transport-https"
+    - "ca-certificates"
+
+- name: Install Docker apt key
+  apt_key:
+    keyserver: "hkp://p80.pool.sks-keyservers.net:80"
+    id: "58118E89F3A912897C070ADBF76221572C52609D"
+    validate_certs: no
+
+- name: Install docker apt deb package
+  apt_repository:
+    repo: "deb https://apt.dockerproject.org/repo {{ docker_engine_repo }} main"
+
+- name: Purge old docker repo
+  apt:
+    name: "lxc-docker"
+    state: absent
+    purge: yes
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Register kernel version
+  command: "uname -r"
+  register: kernel_version
+
+- name: Update and install Docker and kernel package to use AUFS storage
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+    - "linux-image-extra-{{ kernel_version.stdout }}"
+    - "docker-engine"
+
+- name: Add Swap accounting to GRUB
+  lineinfile:
+    dest: "/etc/default/grub"
+    line: 'GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"'
+    regexp: "^GRUB_CMDLINE_LINUX=.*"
+  register: grub_swap
+
+- name: Update GRUB when GRUB_CMDLINE_LINUX changed
+  command: "update-grub"
+  when: grub_swap|changed
+
+- name: Ensure Docker opts set for ubuntu trusty
+  when: docker_engine_repo == "ubuntu-trusty"
+  lineinfile:
+    dest: "/etc/default/docker"
+    line: 'DOCKER_OPTS="{{ docker_engine_opts }}"'
+    regexp: "^#?DOCKER_OPTS=.*"
+  register: docker_opts
+
+- name: Template systemd files with docker opts
+  when: docker_engine_repo == "ubuntu-xenial"
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: "{{ docker_engine_systemd_service_path }}"
+      dest: "/{{ docker_engine_systemd_service_path }}"
+    - src: "{{ docker_engine_systemd_socket_path }}"
+      dest: "/{{ docker_engine_systemd_socket_path }}"
+
+- name: Restart Docker
+  service:
+    name: docker
+    state: restarted

@@ -1,0 +1,11 @@
+---
+
+- name: Create {{ kubectl_k8s_ingresses_dir }} dir
+  file:
+    dest: "{{ kubectl_k8s_ingresses_dir }}"
+    state: directory
+
+- name: Template Ingresses to {{ kubectl_k8s_ingresses_dir }} dir
+  template:
+    src: "ingresses/appweb_ingress.yaml.j2"
+    dest: "{{ kubectl_k8s_ingresses_dir }}/appweb_ingress.yaml"

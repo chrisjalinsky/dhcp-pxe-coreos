@@ -1,5 +1,19 @@
 ---
 
+kubectl_version: "v1.2.4"
+kubectl_tmp_dir: "/tmp"
+kubectl_bin_dir: "/usr/local/bin"
+
 kubectl_contrib_git_dir: "/opt/contrib"
-kubectl_create_ingress_ctrl: no
+kubectl_k8s_services_dir: "/opt/k8s_services"
+kubectl_k8s_rcs_dir: "/opt/k8s_rcs"
+kubectl_k8s_secrets_dir: "/opt/k8s_secrets"
+kubectl_k8s_ingresses_dir: "/opt/k8s_ingresses"
+kubectl_kubeconfig_path: "/var/lib/bootcfg/assets/tls/kubeconfig"
+kubectl_tasklist: []
+
+#kubectl_tasklist:
+#  - name: "k8s_ingress_ctrl"
+#  - name: "k8s_services"
+#  - name: "k8s_rcs"
 kubectl_opts: []

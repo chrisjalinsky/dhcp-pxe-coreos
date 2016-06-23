@@ -1,0 +1,10 @@
+---
+
+delegate_copy_to_host: ""
+delegate_copy_from_host: ""
+delegate_copy_from_host_path: ""
+delegate_copy_to_host_path: ""
+delegate_copy_to_temp_path: "/tmp/path"
+delegate_copy_to_ssh_user: ""
+delegate_copy_to_ssh_key_path: ""
+delegate_copy_create: []

@@ -1,0 +1,9 @@
+---
+
+user_role_user: "root"
+user_role_group: "root"
+user_role_user_groups: "root"
+user_role_user_pw: defaultpassword
+user_role_user_pw_salt: defaultsalt
+user_role_home: "/root"
+user_role_user_gid: "3030"

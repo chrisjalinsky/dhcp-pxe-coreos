@@ -1,59 +1,30 @@
 #!/bin/bash
 
-echo "Beginning Installation. The ansible playbook stderr/stdout will be appended to ./install.out"
+# $1 is playbook to run string
+# $2 is inventory string
+# $3 is filename string
 
-# Installs DNS in the environment, and is not necessary if DNS already exists
-echo "Starting core server playbook"
-ansible-playbook provision_core_servers.yaml -i inventory.py >>./install.out 2>&1
-echo "End core server playbook"
+function run_playbook () {
+  echo "Running: ansible-playbook $1 -i $2 at $(date)"
+  ansible-playbook $1 -i $2 >> $3 2>&1
+  if [ $? -eq 0 ]; then
+    echo "Success."
+  else
+    echo "Unsuccessful playbook. Error Code $?"
+    exit 1
+  fi
+}
 
-# Updates the cluster node's resolv.conf to point to the previous playbook's DNS server(s), this is not necessary if DNS resolution already exists
-if [ $? -eq 0 ]; then
-  echo "Starting update resolv playbook"
-  ansible-playbook update_resolv.yaml -i inventory.py >>./install.out 2>&1
-  echo "End update resolv playbook"
-fi
+echo "Beginning Installation at $(date)."
 
-# Install tftpd pxe server
-if [ $? -eq 0 ]; then
-  echo "Starting tftpd server playbook"
-  ansible-playbook provision_tftpd_server_for_bootcfg.yaml -i inventory.py >>./install.out 2>&1
-  echo "End tftpd server playbook"
-  
-  #or run for an apache server and separate templates. You need to download the netboot.tar.gz:
-  #ansible-playbook provision_tftpd_server.yaml -i inventory.py >>./install.out 2>&1
-fi
+run_playbook provision_core_servers.yaml inventory.py install.out
+run_playbook update_resolv.yaml inventory.py install.out
+run_playbook provision_tftpd_server_for_bootcfg.yaml inventory.py install.out
+run_playbook provision_bootcfg_server.yaml inventory.py install.out
+run_playbook provision_dhcp_server_for_bootcfg.yaml inventory.py install.out
+run_playbook provision_kubectl.yaml inventory.py install.out
+run_playbook provision_docker_servers.yaml inventory.py install.out
+run_playbook provision_docker_registry_servers.yaml inventory.py install.out
+run_playbook provision_docker_nginx.yaml inventory.py install.out
 
-# Install bootcfg server for coreos baremetal bootcfg api pxe boot server. The get-coreos.sh distro download is several hundred MBs.
-if [ $? -eq 0 ]; then
-  echo "Starting bootcfg server playbook"
-  ansible-playbook provision_bootcfg_server.yaml -i inventory.py >>./install.out 2>&1
-  echo "End bootcfg server playbook"
-fi
-
-# Install dhcp server
-if [ $? -eq 0 ]; then
-  echo "Starting dhcp server playbook"
-  ansible-playbook provision_dhcp_server_for_bootcfg.yaml -i inventory.py >>./install.out 2>&1
-  echo "End dhcp server playbook"
-  
-  #or run:
-  #ansible-playbook provision_dhcp_server.yaml -i inventory.py >>./install.out 2>&1
-
-fi
-
-## Sleep for 3 minutes while the Kubernetes cluster builds itself
-#if [ $? -eq 0 ]; then
-#  echo "Sleeping for 3 mins while Cluster builds..."
-#  sleep 180
-#  echo "Done sleeping..."
-#fi
-#
-## Create Ingress Controller for Kubernetes
-#if [ $? -eq 0 ]; then
-#  echo "Starting Kubernetes Ingress controller creation playbook"
-#  ansible-playbook provision_k8s_ingress_ctrl.yaml -i inventory.py >>./install.out 2>&1
-#  echo "End kubernetes ingress ctrl playbook"
-#  echo "Installation complete!"
-#fi
-
+echo "Ending Installation at $(date)."

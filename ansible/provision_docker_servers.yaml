@@ -1,0 +1,26 @@
+---
+
+- name: Ensure docker engine present (and bridgeutils prereq for kubernetes)
+  hosts: docker_servers
+  become: yes
+  become_user: root
+  pre_tasks:
+    - name: Install bridgeutils
+      apt:
+        name: bridge-utils
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: Ensure 127.0.1.1 loopback is not present in etc/hosts
+      lineinfile:
+        dest: "/etc/hosts"
+        line: "127.0.1.1"
+        regexp: "127.0.1.1"
+        state: absent
+    - name: Ensure hostname is {{ ansible_fqdn }}
+      hostname: name="{{ ansible_fqdn }}"
+  roles:
+    - role: docker_engine
+      docker_engine_repo: "ubuntu-trusty"
+      docker_opts:
+        - "--dns=192.168.0.10"
+    - role: docker_compose

@@ -5,8 +5,12 @@ core_servers:
   vars:
     ansible_ssh_user: vagrant
     ansible_ssh_private_key_file: "~/.vagrant.d/insecure_private_key"
-all:
+docker_servers:
   children: [ core_servers ]
+docker_registry_servers:
+  children: [ core_servers ]
+all:
+  children: [ core_servers, docker_servers, docker_registry_servers ]
 _meta:
   hostvars:
     core1.lan:

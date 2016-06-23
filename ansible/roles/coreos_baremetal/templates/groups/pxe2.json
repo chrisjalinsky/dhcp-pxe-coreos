@@ -16,7 +16,7 @@
     "k8s_dns_service_ip": "10.3.0.10",
     "k8s_etcd_endpoints": "http://192.168.0.151:2379,http://192.168.0.152:2379,http://192.168.0.153:2379",
     "skip_networkd": "true",
-    "networkd_address": "192.168.0.151",
+    "networkd_address": "192.168.0.152/24",
     "networkd_dns": "192.168.0.10",
     "networkd_gateway": "192.168.0.1",
     "ssh_authorized_keys": [

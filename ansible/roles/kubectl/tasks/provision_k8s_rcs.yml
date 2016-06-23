@@ -1,0 +1,19 @@
+---
+
+- name: Create {{ kubectl_k8s_rcs_dir }} dir
+  file:
+    dest: "{{ kubectl_k8s_rcs_dir }}"
+    state: directory
+
+- name: Template Ingress Replication Controller to {{ kubectl_k8s_rcs_dir }} dir
+  template:
+    src: "replicationcontrollers/appweb_ingress_rc.yaml.j2"
+    dest: "{{ kubectl_k8s_rcs_dir }}/appweb_ingress_rc.yaml"
+
+- name: Template App Replication Controller to {{ kubectl_k8s_rcs_dir }} dir
+  template:
+    src: "replicationcontrollers/appweb_rc.yaml.j2"
+    dest: "{{ kubectl_k8s_rcs_dir }}/appweb_rc.yaml"
+
+#- name: Run kubectl create rc for app
+#  shell: "kubectl create -f {{ kubectl_k8s_rcs_dir }}/appweb_rc.yaml"

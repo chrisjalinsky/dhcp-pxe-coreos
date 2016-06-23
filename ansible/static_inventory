@@ -1,5 +1,26 @@
 [core_servers]
-core1.lan
+core1.lan ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key ansible_ssh_user=vagrant
+
+[docker_servers:children]
+core_servers
+
+[docker_registry_servers:children]
+core_servers
+
+[pxe_k8s_masters]
+192.168.0.151 ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_user=core
+
+[pxe_k8s_nodes]
+192.168.0.152 ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_user=core
+192.168.0.153 ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_ssh_user=core
+
+[pxe_k8s_cluster:children]
+pxe_k8s_masters
+pxe_k8s_nodes
 
 [all:children]
 core_servers
+docker_servers
+docker_registry_servers
+pxe_k8s_masters
+pxe_k8s_nodes

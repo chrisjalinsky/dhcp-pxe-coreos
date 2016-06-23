@@ -1,0 +1,8 @@
+---
+docker_opts:
+  - "--dns 8.8.8.8"
+docker_opts_string: "{{ docker_opts | join(' ') }}"
+docker_engine_opts: "{{ docker_opts_string }}"
+docker_engine_repo: "ubuntu-xenial"
+docker_engine_systemd_service_path: "etc/systemd/system/docker.service"
+docker_engine_systemd_socket_path: "etc/systemd/system/docker.socket"

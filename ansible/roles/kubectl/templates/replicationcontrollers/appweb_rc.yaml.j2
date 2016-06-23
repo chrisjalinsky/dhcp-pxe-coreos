@@ -1,0 +1,22 @@
+{% raw %}
+---
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: appweb-rc
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: appweb
+    spec:
+      containers:
+      - name: appweb
+        image: core1.lan/appweb:v1
+        ports:
+        - containerPort: 80
+      imagePullSecrets:
+      - name: dreg-secret
+{% endraw %}

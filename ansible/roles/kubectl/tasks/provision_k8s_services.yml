@@ -1,0 +1,15 @@
+---
+
+- name: Create {{ kubectl_k8s_services_dir }} dir
+  file:
+    dest: "{{ kubectl_k8s_services_dir }}"
+    state: directory
+
+- name: Template Services to {{ kubectl_k8s_services_dir }} dir
+  template:
+    src: "services/appweb_svc.yaml.j2"
+    dest: "{{ kubectl_k8s_services_dir }}/appweb_svc.yaml"
+
+#- name: Run kubectl create svc
+#  shell: "kubectl create -f {{ kubectl_k8s_services_dir }}/appweb_svc.yaml"
+  
