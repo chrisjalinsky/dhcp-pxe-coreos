@@ -8,6 +8,10 @@ The following environment PXE boots a kubernetes cluster onto bare metal servers
 * PXE boot install CoreOS to disk (/dev/sda)
 * Reboot and run Ignition to build Etcd, Flannel, Kubernetes, Docker to disk
 * Provision a DHCP, DNS, TFTP, Docker Private Registry, and CoreOS bootcfg server
+* Create a load balanced ingress point into the cluster
+* Set up Horizontal autoscaling for a custom Docker image
+* Authenticate and pull the image from a Docker private registry
+* Load test the autoscaling feature
 
 ###Dependencies:
 * Ansible >= 2.0
@@ -15,7 +19,7 @@ The following environment PXE boots a kubernetes cluster onto bare metal servers
 * Virtualbox >= 5.0
 * Virtualbox Extension Pack [https://www.virtualbox.org/wiki/Downloads](Download here) - Needed to enable Virtualbox PXE Booting to work correctly
 
-You probably only need to have Ansible installed to get this environment up and running. Esp. if you are deploying to bare-metal or another hypervisor. You'll have to create a simple inventory file. Look at ansible/hosts.yaml or ansible/static_inventory to see what groups the playbooks use.
+You probably only need to have Ansible installed to get this environment up and running. Esp. if you are deploying to bare-metal or another hypervisor. You'll have to create a simple inventory file. Look at ansible/static_inventory to see what groups the playbooks use.
 
 Create Environment with Vagrant
 ===============================
@@ -79,8 +83,23 @@ Install dhcp server. The dhcpd.conf file static IP mappings for the pxe booted s
 ansible-playbook provision_dhcp_server_for_bootcfg.yaml -i inventory.py
 ```
 
+Install Docker. This is a role for Ubuntu machines.
+```
+ansible-playbook provision_docker_servers.yaml -i inventory.py
+```
 
-###Bootcfg Upstart service
+Install private Docker Registry. This is a role for Ubuntu machines.
+```
+ansible-playbook provision_docker_registry_servers.yaml -i inventory.py
+```
+
+Build test application from Dockerfile.
+```
+ansible-playbook provision_docker_nginx.yaml -i inventory.py
+```
+
+###Bootcfg Upstart service (Only relevant for Upstart init)
+
 ```
 /etc/init/bootcfg.conf
 bootcfg status
@@ -130,7 +149,7 @@ A play run in the CoreOS Baremetal role, execs scripts/gen-k8s-certs.sh which pu
 
 
 ###Kubernetes dashboard
-see roles/coreos_baremetal/templates/k8s-master.yaml for svc and rc implementation.
+see roles/coreos_baremetal/templates/k8s-master.yaml for svc and rc implementation. This is built in to the PXE boot, but if you need to manually add a dashboard, here's  how:
 
 ```
 kubectl create -f https://rawgit.com/kubernetes/dashboard/master/src/deploy/kubernetes-dashboard.yaml
@@ -355,6 +374,51 @@ spec:
         - containerPort: 80
           hostPort: 80
 ```
+###Additional Horizontal Pod Autoscaling details:
+
+Heapster Autoscale algorithm (https://github.com/kubernetes/kubernetes/blob/release-1.2/docs/design/horizontal-pod-autoscaler.md)[described here]:
+```
+TargetNumOfPods = ceil(sum(CurrentPodsCPUUtilization) / Target)
+```
+
+The heapster pod exposes an internal cluster endpoint, curl the metrics to see Heapster metrics:
+In my case, ```10.20.88.2:8082``` is the exposed internal heapster service:
+
+###Curl from inside the cluster:
+```
+curl http://10.20.88.2:8082/metrics
+curl http://10.20.88.2:8082/api/v1/model/debug/allkeys
+```
+
+###Heapster logs:
+
+```
+kubectl --namespace=kube-system get po
+```
+
+Several logs to watch, heapster and heapster-nanny:
+```
+kubectl --namespace=kube-system logs heapster-v1.0.2-808903792-eod7e heapster
+kubectl --namespace=kube-system logs heapster-v1.0.2-808903792-eod7e heapster-nanny
+```
+
+Additional Curl requests to specific pods:
+============
+
+```
+curl http://172.16.102.6:8082/api/v1/model/namespaces/default/pods//hello-world-819237062-j0ubt/metrics/cpu-usage
+```
+
+###Siege
+
+Once you've gotten this far, let's run a load test against the ingress point to test autoscaling:
+
+On core1.lan, run siege. You'll need to locate the ingress point first before making siege requests. To do this, find which node the ingress controller has been assigned to. You can find that in the dashboard.
+```
+apt-get install siege
+siege -c 20 http://<node with ingress rc>/ingress
+```
+
 
 Kubernetes quick command to create and expose on NodePort:
 ```
