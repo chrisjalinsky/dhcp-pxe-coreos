@@ -1,12 +1,140 @@
 ---
 
+# skip_networkd == "true" is important for the Vagrant network environment
+# because of the NAT default gateway.
+# The MAC addresses listed below were retrieved from 3 Virtualbox VMs.
+
 - name: provision coreos baremetal bootcfg servers
   hosts: core_servers
   become: yes
   become_user: root
+  vars_files:
+    - vars/makevault.yml
   roles:
     - role: coreos_baremetal
-      coreos_channel: "alpha"
-      coreos_version: "1053.2.0"
-      #coreos_baremetal_bootcfg_data_dir: "/opt/coreos-baremetal/examples"
-      #coreos_baremetal_bootcfg_assets_dir: "/opt/coreos-baremetal/examples/assets"
+      coreos_channel: "{{ global_coreos_channel }}"
+      coreos_version: "{{ global_coreos_version }}"
+      coreos_baremetal_install_device: "/dev/sda"
+      coreos_baremetal_install_device_format: "ext4"
+      coreos_baremetal_k8s_server_ip: "192.168.0.151"
+      coreos_baremetal_k8s_san_master_ips:
+        - "IP.1=10.30.0.1"
+        - "IP.2=192.168.0.151"
+      coreos_baremetal_k8s_san_worker_ips:
+        - "IP.1=192.168.0.152"
+        - "IP.2=192.168.0.153"
+      coreos_baremetal_ignition_templates:
+        - src: "ignition/default.yaml"
+          dest: "/var/lib/bootcfg/ignition/default.yaml"
+        - src: "ignition/k8s-master.yaml"
+          dest: "/var/lib/bootcfg/ignition/k8s-master.yaml"
+        - src: "ignition/k8s-worker.yaml"
+          dest: "/var/lib/bootcfg/ignition/k8s-worker.yaml"
+      coreos_baremetal_ignition_groups:
+        - id: "default"
+          name: "default"
+          profile: "default"
+          metadata:
+            coreos_channel: "{{ global_coreos_channel }}"
+            coreos_version: "{{ global_coreos_version }}"
+            ignition_endpoint: "http://192.168.0.10:8080/ignition"
+            baseurl: "http://192.168.0.10:8080/assets/coreos"
+            ssh_authorized_keys: "{{ global_coreos_ssh_pub_keys }}"
+        - id: "pxe"
+          name: "Master Node"
+          profile: "k8s-master-install"
+          selector: 
+            os: "installed"
+            mac: "08:00:27:2B:EB:89"
+          metadata: 
+            etcd_initial_cluster: "pxe=http://192.168.0.151:2380,pxe2=http://192.168.0.152:2380,pxe3=http://192.168.0.153:2380"
+            etcd_name: "pxe"
+            fleet_metadata: "role=etcd,name=pxe"
+            ipv4_address: "192.168.0.151"
+            k8s_cert_endpoint: "http://192.168.0.10:8080/assets"
+            k8s_dns_service_ip: "10.30.0.10"
+            k8s_etcd_endpoints: "http://192.168.0.151:2379,http://192.168.0.152:2379,http://192.168.0.153:2379"
+            k8s_pod_network: "10.20.0.0/16"
+            k8s_service_ip_range: "10.30.0.0/24"
+            skip_networkd: "true"
+            networkd_address: "192.168.0.151/24"
+            networkd_dns: "192.168.0.10"
+            networkd_gateway: "192.168.0.1"
+            ssh_authorized_keys: "{{ global_coreos_ssh_pub_keys }}"
+        - id: "pxe2"
+          name: "Worker Node"
+          profile: "k8s-worker-install"
+          selector: 
+            os: "installed"
+            mac: "08:00:27:23:37:EF"
+          metadata: 
+            etcd_initial_cluster: "pxe=http://192.168.0.151:2380,pxe2=http://192.168.0.152:2380,pxe3=http://192.168.0.153:2380"
+            etcd_name: "pxe2"
+            fleet_metadata: "role=etcd,name=pxe2"
+            ipv4_address: "192.168.0.152"
+            k8s_cert_endpoint: "http://192.168.0.10:8080/assets"
+            k8s_controller_endpoint: "https://192.168.0.151"
+            k8s_dns_service_ip: "10.3.0.10"
+            k8s_etcd_endpoints: "http://192.168.0.151:2379,http://192.168.0.152:2379,http://192.168.0.153:2379"
+            skip_networkd: "true"
+            networkd_address: "192.168.0.152/24"
+            networkd_dns: "192.168.0.10"
+            networkd_gateway: "192.168.0.1"
+            ssh_authorized_keys: "{{ global_coreos_ssh_pub_keys }}"
+        - id: "pxe3"
+          name: "Worker Node"
+          profile: "k8s-worker-install"
+          selector: 
+            os: "installed"
+            mac: "08:00:27:DB:CE:DC"
+          metadata: 
+            etcd_initial_cluster: "pxe=http://192.168.0.151:2380,pxe2=http://192.168.0.152:2380,pxe3=http://192.168.0.153:2380"
+            etcd_name: "pxe3"
+            fleet_metadata: "role=etcd,name=pxe3"
+            ipv4_address: "192.168.0.153"
+            k8s_cert_endpoint: "http://192.168.0.10:8080/assets"
+            k8s_controller_endpoint: "https://192.168.0.151"
+            k8s_dns_service_ip: "10.3.0.10"
+            k8s_etcd_endpoints: "http://192.168.0.151:2379,http://192.168.0.152:2379,http://192.168.0.153:2379"
+            skip_networkd: "true"
+            networkd_address: "192.168.0.153/24"
+            networkd_dns: "192.168.0.10"
+            networkd_gateway: "192.168.0.1"
+            ssh_authorized_keys: "{{ global_coreos_ssh_pub_keys }}"
+      coreos_baremetal_ignition_profiles:
+        - id: "default"
+          name: "default"
+          boot: 
+            kernel: "/assets/coreos/{{ global_coreos_version }}/coreos_production_pxe.vmlinuz"
+            initrd: 
+              - "/assets/coreos/{{ global_coreos_version }}/coreos_production_pxe_image.cpio.gz"
+            cmdline: 
+              coreos.config.url: "http://192.168.0.10:8080/ignition?uuid=${uuid}&mac=${net0/mac:hexhyp}"
+              coreos.autologin: ""
+              coreos.first_boot: ""
+          cloud_id: ""
+          ignition_id: "default.yaml"
+        - id: "k8s-master-install"
+          name: "Kubernetes Master Install"
+          boot: 
+            kernel: "/assets/coreos/{{ global_coreos_version }}/coreos_production_pxe.vmlinuz"
+            initrd: 
+              - "/assets/coreos/{{ global_coreos_version }}/coreos_production_pxe_image.cpio.gz"
+            cmdline: 
+              coreos.config.url: "http://192.168.0.10:8080/ignition?uuid=${uuid}&mac=${net0/mac:hexhyp}"
+              coreos.autologin: ""
+              coreos.first_boot: ""
+          cloud_id: ""
+          ignition_id: "k8s-master.yaml"
+        - id: "k8s-worker-install"
+          name: "Kubernetes Worker Install"
+          boot: 
+            kernel: "/assets/coreos/{{ global_coreos_version }}/coreos_production_pxe.vmlinuz"
+            initrd: 
+              - "/assets/coreos/{{ global_coreos_version }}/coreos_production_pxe_image.cpio.gz"
+            cmdline: 
+              coreos.config.url: "http://192.168.0.10:8080/ignition?uuid=${uuid}&mac=${net0/mac:hexhyp}"
+              coreos.autologin: ""
+              coreos.first_boot: ""
+          cloud_id: ""
+          ignition_id: "k8s-worker.yaml"

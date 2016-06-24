@@ -108,13 +108,13 @@ systemd:
 storage:
   {{ if index . "pxe" }}
   disks:
-    - device: /dev/sda
+    - device: {% endraw %}{{ coreos_baremetal_install_device }}{% raw %}
       wipe_table: true
       partitions:
         - label: ROOT
   filesystems:
-    - device: "/dev/sda1"
-      format: "ext4"
+    - device: "{% endraw %}{{ coreos_baremetal_install_device }}{% raw %}1"
+      format: "{% endraw %}{{ coreos_baremetal_install_device_format }}{% raw %}"
       create:
         force: true
         options:
@@ -122,7 +122,7 @@ storage:
   {{else}}
   filesystems:
     - device: "/dev/disk/by-label/ROOT"
-      format: "ext4"
+      format: "{% endraw %}{{ coreos_baremetal_install_device_format }}{% raw %}"
   {{end}}
       files:
         - path: /etc/kubernetes/manifests/kube-proxy.yaml

@@ -1,7 +1,9 @@
 CoreOS PXE Boot Environment
 ===================
 
-The following environment PXE boots a kubernetes cluster onto bare metal servers. This is currently implemented with Virtualbox VMs, but should cover different server types. The use case is local Kubernetes cluster. Included is a custom Docker build web application that is exposed and load balanced on the local network. It will be pulling it's image from a private Docker Registry which will be built as well.
+The following environment PXE boots a Kubernetes cluster (1 master, 2 nodes) onto bare metal servers. This is currently implemented with 3 Virtualbox VMs, but should cover different scenarios. This use case is for building a local Kubernetes cluster onto bare metal servers.
+
+Included is a custom Docker build web application that is exposed and load balanced on the local network. It will be pulling it's image from a private Docker Registry, which will be built as well.
 
 ###Overview:
 * Manually add 3 bare metal servers (or Virtualbox) to local network (192.168.0.0/24)
@@ -11,7 +13,7 @@ The following environment PXE boots a kubernetes cluster onto bare metal servers
 * Create a load balanced ingress point into the cluster
 * Set up Horizontal autoscaling for a custom Docker image
 * Authenticate and pull the image from a Docker private registry
-* Load test the autoscaling feature
+* Load test the autoscaling feature with Siege
 
 ###Dependencies:
 * Ansible >= 2.0
@@ -402,14 +404,35 @@ kubectl --namespace=kube-system logs heapster-v1.0.2-808903792-eod7e heapster
 kubectl --namespace=kube-system logs heapster-v1.0.2-808903792-eod7e heapster-nanny
 ```
 
-Additional Curl requests to specific pods:
-============
+###Additional Heapster details:
 
+Available Metrics via API:
+Again, these metrics are internal only, so you must run the curl request from inside the cluster:
 ```
-curl http://172.16.102.6:8082/api/v1/model/namespaces/default/pods//hello-world-819237062-j0ubt/metrics/cpu-usage
+curl http://10.20.88.2:8082/api/v1/model/namespaces/default/pods/appweb-deployment-3103507669-cp6uh/metrics
+[
+  "memory/major_page_faults_rate",
+  "network/rx",
+  "network/tx",
+  "memory/limit",
+  "cpu/usage_rate",
+  "uptime",
+  "network/rx_rate",
+  "network/tx_errors_rate",
+  "cpu/request",
+  "memory/page_faults_rate",
+  "network/tx_rate",
+  "network/tx_errors",
+  "cpu/limit",
+  "memory/usage",
+  "memory/working_set",
+  "network/rx_errors_rate",
+  "memory/request",
+  "network/rx_errors"
+ ]
 ```
 
-###Siege
+###Load testing with Siege
 
 Once you've gotten this far, let's run a load test against the ingress point to test autoscaling:
 

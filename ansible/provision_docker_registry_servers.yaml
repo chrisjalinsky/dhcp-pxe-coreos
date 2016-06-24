@@ -11,4 +11,4 @@
     - role: openssl
       openssl_generator_complexity: 4096
     - role: docker_registry
-      docker_registry_users: "{{ authorized_registry_users }}"
+      docker_registry_users: "{{ global_authorized_registry_users }}"

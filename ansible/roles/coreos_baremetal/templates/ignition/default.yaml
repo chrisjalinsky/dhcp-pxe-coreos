@@ -13,7 +13,7 @@ systemd:
         [Service]
         Type=oneshot
         ExecStart=/usr/bin/curl -o {% endraw %}{{ coreos_baremetal_tmp_file }}{% raw %} "{{.ignition_endpoint}}?{{.query}}&os=installed"
-        ExecStart=/usr/bin/coreos-install -d /dev/sda -C {{.coreos_channel}} -V {{.coreos_version}} -i {% endraw %}{{ coreos_baremetal_tmp_file }}{% raw %} {{if index . "baseurl"}}-b {{.baseurl}}{{end}}
+        ExecStart=/usr/bin/coreos-install -d {% endraw %}{{ coreos_baremetal_install_device }}{% raw %} -C {{.coreos_channel}} -V {{.coreos_version}} -i {% endraw %}{{ coreos_baremetal_tmp_file }}{% raw %} {{if index . "baseurl"}}-b {{.baseurl}}{{end}}
         ExecStart=/usr/bin/udevadm settle
         ExecStart=/usr/bin/systemctl poweroff
         [Install]
