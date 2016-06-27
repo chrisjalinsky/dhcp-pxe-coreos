@@ -12,8 +12,8 @@
     - vars/makevault.yml
   roles:
     - role: coreos_baremetal
-      coreos_channel: "{{ global_coreos_channel }}"
-      coreos_version: "{{ global_coreos_version }}"
+      coreos_baremetal_coreos_channel: "{{ global_coreos_channel }}"
+      coreos_baremetal_coreos_version: "{{ global_coreos_version }}"
       coreos_baremetal_install_device: "/dev/sda"
       coreos_baremetal_install_device_format: "ext4"
       coreos_baremetal_k8s_server_ip: "192.168.0.151"

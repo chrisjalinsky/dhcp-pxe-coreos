@@ -10,7 +10,7 @@
         fact_registry_leader: "{{ groups['docker_registry_servers'][0] }}"
 
 - name: Copy Docker Registry cert to docker servers
-  hosts: docker_registry_servers
+  hosts: core1.lan
   become: yes
   become_user: root
   roles:

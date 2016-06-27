@@ -270,7 +270,7 @@ spec:
           protocol: TCP
         resources:
           requests:
-            cpu: 200m
+            cpu: 50m
       imagePullSecrets:
       - name: dreg-secret
       dnsPolicy: ClusterFirst
@@ -440,6 +440,48 @@ On core1.lan, run siege. You'll need to locate the ingress point first before ma
 ```
 apt-get install siege
 siege -c 20 http://<node with ingress rc>/ingress
+```
+###NodePort Ingress with Consul
+This is a different approach to ingress, where you expose the internal service on the same port of all nodes and utilize an outside Consul cluster for service discovery.
+
+[https://github.com/kubernetes/contrib/blob/master/keepalived-vip/examples/echoheaders.yaml](Keepalived example)
+```
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: np-app
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: np-app
+    spec:
+      containers:
+      - name: np-app
+        image: core1.lan/appweb:v1
+        ports:
+        - containerPort: 8080
+      imagePullSecrets:
+      - name: dreg-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: np-app
+  labels:
+    app: np-app
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    nodePort: 30302
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: np-app
 ```
 
 
