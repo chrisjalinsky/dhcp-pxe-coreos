@@ -6,8 +6,8 @@ global_authorized_registry_users:
   - user: testuser
     password: pass
 
-global_coreos_channel: "alpha"
-global_coreos_version: "1053.2.0"
+global_coreos_channel: "stable"
+global_coreos_version: "1010.5.0"
 
 global_coreos_ssh_pub_keys:
   - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/PMJ7B/EiWn51N0jIGpUcVxg+GuWCMnudK+/sySNguhtQYXHOMGXVP3I7RkyjMD+y18K27YABAgrQMtexowlZKFI/dTdPAZCob7m2pr4RyW6UySp6bPNzldHhN0iyHqt2/gnfXLX2OCwGe8yGsCsWEIb19xaYWJkL/0rmKaq82/vqqMOmBko3JOom1UPExr9TXc8kQCBXVVL1U9WQyOJnZewPlrbzj8xIdtUX5Vv5lmU2VsLl+vvC7fNnLJeCocWjdfGf1j0eTJtAYgSc2FujrjNhfU0+YTRs9hextq4SQlgHPHA4KNIfZdxT9/mOIET1I5L0+dNf0VawZJD0Gpf/
