@@ -180,10 +180,17 @@ systemctl restart systemd-resolved.service
 ###Using Private Registry, you need to create a kubernetes secret to use to pull images:
 
 Copy the Registry certs to the k8s cluster to handle the Docker insecure registry error:
+
 ```
 mkdir -p /etc/docker/certs.d/core1.lan
+
+# May need to use .crt files depending on OS. CoreOS seems to want .pem
 sudo scp vagrant@core1.lan:/etc/ssl/core1.lan/core1.lan.pem /etc/docker/certs.d/core1.lan/ca.pem
 sudo cp /etc/docker/certs.d/core1.lan/ca.pem /etc/ssl/certs/core1.lan.pem
+
+#sudo scp vagrant@core1.lan:/etc/ssl/core1.lan/core1.lan.crt /etc/docker/certs.d/core1.lan/ca.crt
+#sudo cp /etc/docker/certs.d/core1.lan/ca.crt /etc/ssl/certs/core1.lan.crt
+
 update-ca-certificates
 systemctl restart docker.service
 systemctl status docker.service
@@ -208,6 +215,18 @@ metadata:
 data:
   .dockerconfigjson: ewoJImF1dGhzIjogewoJCSJodHRwczovL2NvcmUxLmxhbiI6IHsKCQkJImF1dGgiOiAiZEdWemRIVnpaWEk2Y0dGemN3PT0iCgkJfQoJfQp9
 type: kubernetes.io/dockerconfigjson
+```
+or this base64:
+```
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dreg-secret
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSJodHRwczovL2NvcmUxLmxhbiI6IHsKCQkJImF1dGgiOiAiZEdWemRIVnpaWEk2Y0dGemN3PT0iLAoJCQkiZW1haWwiOiAiY2pAbWUuY29tIgoJCX0KCX0KfQ==
+type: kubernetes.io/dockerconfigjson
+
 ```
 
 Kubernetes Ingress Example:
@@ -441,12 +460,29 @@ On core1.lan, run siege. You'll need to locate the ingress point first before ma
 apt-get install siege
 siege -c 20 http://<node with ingress rc>/ingress
 ```
-###NodePort Ingress with Consul
-This is a different approach to ingress, where you expose the internal service on the same port of all nodes and utilize an outside Consul cluster for service discovery.
+###NodePort LoadBalancing
+This is a different approach to ingress, where you expose the internal service on the same port of all nodes and utilize something like an outside Consul cluster for service health.
 
-[https://github.com/kubernetes/contrib/blob/master/keepalived-vip/examples/echoheaders.yaml](Keepalived example)
 ```
 ---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: np-app
+  labels:
+    app: np-app
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      nodePort: 31002
+      targetPort: 80
+  selector:
+    app: np-app
+
+---
+
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -459,13 +495,30 @@ spec:
         app: np-app
     spec:
       containers:
-      - name: np-app
-        image: core1.lan/appweb:v1
-        ports:
-        - containerPort: 8080
+        - name: np-app
+          image: core1.lan/appweb:v1
+          ports:
+            - containerPort: 80
+              name: appweb-port
+          volumeMounts:
+            - mountPath: /appweb_data
+              name: appweb-datavol
       imagePullSecrets:
-      - name: dreg-secret
+        - name: dreg-secret
+      volumes:
+        - name: appweb-datavol
+          hostPath:
+            path: /data
+```
+
+Managing Data
+=============
+
+This example utilizes a hostPath: data mount to persist files to nodes across pod failures. In the example, an environment variable is set which identifies the podIP.
+
+```
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -475,17 +528,106 @@ metadata:
 spec:
   type: NodePort
   ports:
-  - port: 80
-    nodePort: 30302
-    targetPort: 8080
-    protocol: TCP
-    name: http
+    - port: 80
+      nodePort: 31000
+      targetPort: 80
   selector:
     app: np-app
+
+---
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: np-app
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: np-app
+    spec:
+      containers:
+        - name: count
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          image: ubuntu:14.04
+          args: [bash, -c, 
+                 'for ((i = 0; ; i++)); do echo "$i: $(date)" >> /appweb_data/$(MY_POD_IP)-outfile.txt; sleep 1; done']
+          volumeMounts:
+            - mountPath: /appweb_data
+              name: appweb-datavol
+      volumes:
+        - name: appweb-datavol
+          hostPath:
+            path: /datavol
+```
+
+Filesystems Example App
+=============
+
+This example utilizes a hostPath: data mount to persist files to nodes across pod failures. In the example, an environment variable is set which identifies the podIP.
+
+5 Pod on a 3 node cluster
+----
+
+Interestingly, it appears the master has 1 pod, while each node has 2. 1 node is serving the masters 31000 port, while the master's filesystem has no files. This leads me to conclude there is NOT a 1-to-1 node->service->pod mapping. Some type of mapping is happening, whether it's IP tables or a LB service/proxy. After tearing down the cluster, updating the Docker build, and redeploying, a datavol from the master is now being served over a node, while take node's filesystem is being served over the master web app.
+
+```
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: np-app
+  labels:
+    app: np-app
+spec:
+  type: NodePort
+  ports:
+    - port: 8085
+      nodePort: 31000
+      targetPort: 8085
+  selector:
+    app: np-app
+
+---
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: np-app
+spec:
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: np-app
+    spec:
+      containers:
+        - name: count
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          image: core1.lan/httptemplates:v1
+          volumeMounts:
+            - mountPath: /go/src/github.com/chrisjalinsky/httptemplates/data
+              name: httptemplates-datavol
+      imagePullSecrets:
+        - name: dreg-secret
+      volumes:
+        - name: httptemplates-datavol
+          hostPath:
+            path: /datavol
 ```
 
 
-Kubernetes quick command to create and expose on NodePort:
+Unrelated: Kubernetes quick command to create and expose on NodePort:
 ```
 kubectl run my-nginx --image=core1.lan/appweb:v1 --replicas=2 --port=80 --expose --service-overrides='{ "spec": { "type": "NodePort" } }'
 ```

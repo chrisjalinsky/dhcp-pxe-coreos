@@ -1,0 +1,32 @@
+---
+
+- name: Create {{ docker_ht_templates_dir }} dir
+  file:
+    dest: "{{ item.dest }}"
+    state: "{{ item.state | default('directory') }}"
+  with_items:
+    - dest: "{{ docker_ht_templates_dir }}"
+    - dest: "{{ docker_ht_templates_dir }}/templates"
+    - dest: "{{ docker_ht_templates_dir }}/data"
+
+- name: Template httptemplates Files
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: "httptemplates/Dockerfile"
+      dest: "{{ docker_ht_templates_dir }}/Dockerfile"
+    - src: "httptemplates/httptemplates.go"
+      dest: "{{ docker_ht_templates_dir }}/httptemplates.go"
+    - src: "httptemplates/templates/index.html"
+      dest: "{{ docker_ht_templates_dir }}/templates/index.html"
+    - src: "httptemplates/templates/edit.html"
+      dest: "{{ docker_ht_templates_dir }}/templates/edit.html"
+    - src: "httptemplates/templates/view.html"
+      dest: "{{ docker_ht_templates_dir }}/templates/view.html"
+
+- name: Build Docker Image
+  shell: "docker build -t {{ docker_ht_image_tag }} ."
+  args:
+    chdir: "{{ docker_ht_templates_dir }}"
+    

@@ -1,0 +1,4 @@
+---
+
+docker_ht_templates_dir: "/opt/k8s_docker_httptemplates"
+docker_ht_image_tag: "core1.lan/httptemplates:v1"

@@ -1,0 +1,9 @@
+---
+
+- name: provision custom Docker Nginx containers
+  hosts: docker_registry_servers
+  become: yes
+  become_user: root
+  roles:
+    - role: docker_httptemplates
+      docker_ht_image_tag: "core1.lan/httptemplates:v2"

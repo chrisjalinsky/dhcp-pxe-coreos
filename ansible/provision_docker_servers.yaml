@@ -22,5 +22,5 @@
     - role: docker_engine
       docker_engine_repo: "ubuntu-trusty"
       docker_opts:
-        - "--dns=192.168.0.10"
+        - "--dns=8.8.8.8"
     - role: docker_compose
