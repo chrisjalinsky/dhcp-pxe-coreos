@@ -100,6 +100,11 @@ Build test application from Dockerfile.
 ansible-playbook provision_docker_nginx.yaml -i inventory.py
 ```
 
+Build test Go filesystem application from Dockerfile (serves on NodePort 31000)
+```
+ansible-playbook provision_docker_httptemplates.yaml -i inventory.py
+```
+
 ###Bootcfg Upstart service (Only relevant for Upstart init)
 
 ```
